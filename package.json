@@ -45,7 +45,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "@preact/signals": "^2.10.1",
+    "@preact/signals": "^2.11.1",
     "@schedule-x/calendar": "^3.7.3",
     "@schedule-x/event-modal": "^3.7.3",
     "@schedule-x/events-service": "^4.6.1",
