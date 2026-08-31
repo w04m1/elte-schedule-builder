@@ -59,7 +59,7 @@
     "preact": "^10.29.8",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1",
-    "temporal-polyfill": "^0.3.0"
+    "temporal-polyfill": "^1.0.4"
   },
   "allowScripts": {
     "esbuild@0.28.1": true,
