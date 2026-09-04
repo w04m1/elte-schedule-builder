@@ -1,279 +1,418 @@
 <script>
-  import calendarOverviewUrl from "../assets/guide/calendar-overview.png";
-  import conflictCalendarUrl from "../assets/guide/conflict-calendar.png";
-  import conflictDetailsUrl from "../assets/guide/conflict-details.png";
-  import eventDetailsUrl from "../assets/guide/event-details.png";
-  import googleCalendarExportUrl from "../assets/guide/google-calendar-export.png";
-  import missingSubjectsUrl from "../assets/guide/missing-subjects.png";
-  import subjectCodeInputUrl from "../assets/guide/subject-code-input.png";
-  import visibilityControlsUrl from "../assets/guide/visibility-controls.png";
+  import Icon from "./Icon.svelte";
+  import Modal from "./Modal.svelte";
+  import { language, t } from "../utils/i18n.js";
+
   let { isOpen = false, onClose } = $props();
 </script>
 
-{#if isOpen}
-  <div
-    class="modal-backdrop"
-    role="button"
-    tabindex="0"
-    aria-label="Dismiss guide"
-    onclick={(event) => event.target === event.currentTarget && onClose()}
-    onkeydown={(event) => event.key === "Escape" && onClose()}
-  >
-    <div class="modal-content" role="dialog" aria-modal="true" tabindex="-1">
-      <button
-        type="button"
-        class="close-btn"
-        aria-label="Close guide"
-        onclick={onClose}>×</button
-      >
-      <div class="guide-content">
-        <h1>What is this?</h1>
-        <p>
-          Usually creating your schedule feels more like a casino rather than
-          planning. Well, not anymore! With this website you can plan your
-          schedule ahead of the registration period and also export it straight
-          to Google Calendar (from which you can export your precious schedule
-          anywhere if you want).
-        </p>
-
-        <h1>How to use</h1>
-        <p>First of all, you need to acquire your subject codes from Neptun.</p>
-        <p>
-          Then you paste them into the input field and press
-          <code>Generate schedule</code>.
-        </p>
-        <img
-          src={subjectCodeInputUrl}
-          alt="Subject codes entered in the schedule builder"
-        />
-        <p>
-          <code>
-            Loading might take a bit if data is old and needs to be refreshed.
-          </code>
-        </p>
-
-        <p>Upon loading, there might appear a window with missing subjects.</p>
-        <img src={missingSubjectsUrl} alt="Missing-subject warning" />
-        <div class="guide-note">
-          <p>This might happen due to several reasons:</p>
-          <ul>
-            <li>
-              Professor has not updated the schedule yet &rarr; come back for
-              this subject later.
-            </li>
-            <li>
-              There is a bug in the code; if you think that is the case, please
-              contact me.
-            </li>
-          </ul>
+<Modal open={isOpen} wide label={t($language, "helpTitle")} {onClose}>
+  {#if $language === "hu"}
+    <article class="guide-content">
+      <header>
+        <div>
+          <h2>Súgó és útmutató</h2>
+          <p>
+            Keress ELTE-s tárgyakat, válassz kurzuscsoportokat, hasonlíts össze
+            lehetőségeket, és kezeld több órarendedet ebben a böngészőben.
+          </p>
         </div>
+        <button
+          type="button"
+          class="close-btn"
+          aria-label="Útmutató bezárása"
+          onclick={onClose}
+        >
+          <Icon name="x" size={20} />
+        </button>
+      </header>
 
+      <aside class="guide-note">
+        <strong
+          >A végleges órarendet mindig ellenőrizd egy hivatalos
+          ELTE-rendszerben.</strong
+        >
+        Ez a független eszköz a Tanrend adatait használja, amelyek hiányosak vagy
+        elavultak lehetnek.
+      </aside>
+
+      <section>
+        <h3>1. Gyors kezdés</h3>
+        <ol>
+          <li>
+            Adj meg tárgykódot, kurzusnevet vagy oktatót a <strong
+              >Kurzusok hozzáadása a Tanrendből</strong
+            > résznél.
+          </li>
+          <li>
+            Nyiss meg egy javasolt tárgyat, vagy válaszd a <strong
+              >Kurzusok keresése</strong
+            > gombot az összes találat áttekintéséhez.
+          </li>
+          <li>
+            Először az előadások, majd a gyakorlatok jelennek meg, hétfőtől
+            péntekig és kezdési idő szerint rendezve. Kattints vagy nyomj Entert
+            egy kurzussoron a kiválasztáshoz. Az <strong
+              >Összes csoport hozzáadása</strong
+            > lehetőséggel minden csoportot összehasonlíthatsz. A találatok nyitva
+            maradnak, így egy menetben választhatsz előadást és gyakorlatot.
+          </li>
+          <li>
+            Pontosítsd a csoportokat, ellenőrizd az ütközéseket, majd exportálj
+            vagy másold ki a megosztási linket az <strong>Az órarended</strong> résznél.
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h3>2. Tárgyak keresése vagy importálása</h3>
         <p>
-          If there is information about subjects, you will see them in the
-          calendar.
-        </p>
-        <img
-          src={calendarOverviewUrl}
-          alt="Weekly calendar populated with classes"
-        />
-
-        <h1>Features</h1>
-
-        <h3>Click an event to see more information</h3>
-        <img src={eventDetailsUrl} alt="Expanded event details" />
-
-        <h3>
-          Hide subjects from the calendar (single or several lessons, or the
-          whole subject)
-        </h3>
-        <img
-          src={visibilityControlsUrl}
-          alt="Subject and event visibility controls"
-        />
-
-        <h3>
-          Conflicts between subjects (see which subjects conflict with each
-          other)
-        </h3>
-        <img
-          src={conflictCalendarUrl}
-          alt="Conflicting events in the calendar"
-        />
-        <img
-          src={conflictDetailsUrl}
-          alt="Conflict details in the subject controls"
-        />
-
-        <h3>Export to Google Calendar</h3>
-        <p>
-          Once you are happy with your schedule and finished registering, you
-          can proceed to export your calendar.
-        </p>
-        <p>
-          <strong>
-            Notice that only subjects that are visible in the calendar will be
-            exported.
-          </strong>
-        </p>
-        <p>
-          When you click <code>Export to Google Calendar</code>, a window will
-          open with your subjects and buttons next to them. Each button will
-          open a new window with Google Calendar where you can adjust the
-          information and save the event.
-        </p>
-        <img
-          src={googleCalendarExportUrl}
-          alt="Google Calendar export dialog"
-        />
-
-        <h3>Share your schedule</h3>
-        <p>
-          When you click <code>Share Schedule</code>, the link to the schedule
-          will be copied to your clipboard.
+          A kereső egyszerre vizsgálja a tárgykódokat, kurzusneveket és
+          oktatóneveket. A nevekben kisebb elírásokat is elfogad, a
+          tárgykódoknak viszont pontosnak kell lenniük. Oktató nevére keresve
+          megjelennek az általa tartott kurzusok. Két karakter után legfeljebb
+          három rangsorolt javaslat jelenik meg. A nyilakkal léphetsz, <kbd
+            >Enter</kbd
+          >rel nyithatsz meg egy tárgyat, <kbd>Escape</kbd>-pel pedig bezárhatod
+          a javaslatokat. Egy javaslat megnyitása még nem adja hozzá a tárgyat
+          az órarendhez.
         </p>
         <p>
-          Opening a shared link creates a new schedule automatically, so
-          schedules already saved on the device are preserved.
+          Az <strong>Importálás Neptunból</strong> a Neptun Felvett tárgyak
+          oldaláról letöltött <code>.xlsx</code> fájlt fogadja. A fájl
+          tárgykódokat tartalmaz, nem a kiválasztott kurzuscsoportokat, ezért a
+          tervező minden Tanrend-lehetőséget megtart, de az előadás- és
+          gyakorlatszakaszokban csak egy kezdő csoportot választ ki. Ellenőrizd
+          a csoportokat, vagy használd az Órarendjavaslatokat. A
+          <code>DEMO-1</code>–<code>DEMO-6</code> kódokkal élő Tanrend-adatok nélkül
+          is kipróbálható a tervező.
         </p>
+      </section>
 
-        <h3>Manage several schedules</h3>
+      <section>
+        <h3>3. Kiválasztott tárgyak pontosítása</h3>
         <p>
-          Use the <code>My schedules</code> panel at the bottom of the Schedule Builder
-          to create, switch, rename, or delete local schedules. Each schedule keeps
-          its own subjects and lecture-exemption setting.
+          A kiválasztott kurzussort zöld, az órarenddel ütköző sort piros keret
+          és szöveges állapot jelöli. Egy tárgy jelölőnégyzete az összes
+          engedélyezett alkalmát mutatja vagy rejti el. A tárgyak ábécérendben
+          vannak. A tárgy nevére kattintva nyílnak meg a kurzusai; a
+          jelölőnégyzet csak közvetlen kattintásra változik. Egy szakaszon belül
+          új kurzus választásakor a korábbi automatikusan lecserélődik, a másik
+          szakasz változatlan marad.
         </p>
+        <p>
+          Az <strong>Órarendjavaslatok</strong> érvényes csoportkombinációkat
+          hasonlít össze. Először a legkevesebb ütközést tartalmazó
+          lehetőségeket rangsorolja, majd ezek közül azt részesíti előnyben,
+          amelyik kevesebb jelenlegi csoportot cserél le. Széles képernyőn a
+          lehetőségek egymás mellett jelennek meg, és csak a lecserélendő
+          csoportokat mutatják, a jelenlegi és a javasolt időponttal együtt. Az
+          <strong>Alkalmazás</strong> módosítja az órarendet.
+        </p>
+      </section>
 
-        <h1>Data and privacy</h1>
+      <section>
+        <h3>4. Az órarend olvasása</h3>
         <p>
-          Saved schedules and interface preferences remain in this browser's
-          local storage instead of being synchronized to an account. The
-          production site uses self-hosted analytics, session recording, and
-          heatmaps, which receive page-view and interaction data to help improve
-          the application.
+          Az előadások zöldek, a gyakorlatok kékek, az ütközések pirosak.
+          Keskeny képernyőn a heti rács helyett napokra bontott lista jelenik
+          meg ugyanazokkal a részletekkel.
         </p>
-      </div>
-    </div>
-  </div>
-{/if}
+        <p>
+          Az <strong>Előadásütközések figyelmen kívül hagyása</strong> beállítást
+          csak akkor kapcsold be, ha az előadás látogatása nem kötelező. Ez az ütközés-ellenőrzést
+          módosítja, az előadásokat nem távolítja el.
+        </p>
+      </section>
+
+      <section>
+        <h3>5. Órarendek kezelése</h3>
+        <p>
+          A felső választóval válthatsz órarendet. A mellette lévő gombokkal
+          átnevezheted vagy törölheted az aktuális tervet. Az <strong
+            >Új órarend</strong
+          >
+          külön tervet készít, az <strong>Órarend kiürítése</strong> pedig csak az
+          aktuális tervből távolítja el a tárgyakat.
+        </p>
+      </section>
+
+      <section>
+        <h3>6. Megosztás és exportálás</h3>
+        <p>
+          A <strong>Link másolása</strong> az engedélyezett kurzuskódokat és az előadásütközés
+          beállítását URL-be teszi. A link megnyitása új helyi órarendet hoz létre,
+          a meglévőket pedig megtartja.
+        </p>
+        <p>
+          A <strong>Naptárexport</strong> az összes engedélyezett órát egyetlen csomagban
+          tölti le. Az iCalendar (.ics) hetente ismétlődő órákat tartalmaz, és több
+          naptáralkalmazással használható. A Google CSV minden óra következő időpontját
+          tartalmazza, heti ismétlődés nélkül.
+        </p>
+      </section>
+
+      <section>
+        <h3>Tárolás és adatvédelem</h3>
+        <p>
+          Az órarendek a böngésző helyi tárhelyén maradnak. A webhelyadatok
+          törlése, a privát böngészés vagy másik böngésző használata
+          eltávolíthatja vagy elrejtheti őket.
+        </p>
+        <p>
+          Az éles oldal saját üzemeltetésű analitikát, munkamenet-felvételt és
+          hőtérképeket is használ. Ezek oldalmegtekintési és interakciós
+          adatokat fogadnak az alkalmazás fejlesztéséhez.
+        </p>
+      </section>
+    </article>
+  {:else}
+    <article class="guide-content">
+      <header>
+        <div>
+          <h2>Help and guide</h2>
+          <p>
+            Search ELTE subjects, choose class groups, compare alternatives, and
+            keep several timetable plans in this browser.
+          </p>
+        </div>
+        <button
+          type="button"
+          class="close-btn"
+          aria-label="Close guide"
+          onclick={onClose}
+        >
+          <Icon name="x" size={20} />
+        </button>
+      </header>
+
+      <aside class="guide-note">
+        <strong
+          >Always verify the final timetable in an official ELTE system.</strong
+        >
+        This independent tool reads Tanrend data, which may be incomplete or outdated.
+      </aside>
+
+      <section>
+        <h3>1. Quick start</h3>
+        <ol>
+          <li>
+            Enter a subject code, course name, or professor under
+            <strong>Add courses from Tanrend</strong>.
+          </li>
+          <li>
+            Open a suggested subject or select <strong>Find courses</strong> to review
+            all matches.
+          </li>
+          <li>
+            Review lectures first, followed by practices. Each section is
+            ordered Monday to Friday, then by start time. Select a class by
+            clicking or pressing its row, or use
+            <strong>Add all groups</strong> when you want to compare its available
+            groups in the planner. Results stay open after choosing a class so lectures
+            and practices can be selected in one pass.
+          </li>
+          <li>
+            Refine the selected groups, check conflicts, then export or copy a
+            share link from <strong>Your timetable</strong>.
+          </li>
+        </ol>
+      </section>
+
+      <section>
+        <h3>2. Search or import subjects</h3>
+        <p>
+          Search checks subject codes, course names, and professor names
+          together. Small typing errors are tolerated in names, while subject
+          codes stay exact. Searching for a professor shows the courses they
+          teach. After two characters, up to three ranked suggestions appear.
+          The first is selected automatically; use <kbd>↑</kbd> and <kbd>↓</kbd>
+          to move,
+          <kbd>Enter</kbd> to open the selected subject, and <kbd>Escape</kbd> to
+          close the suggestions. Opening a suggestion does not add it to the timetable.
+        </p>
+        <p>
+          <strong>Import Neptun</strong> accepts the <code>.xlsx</code> file
+          from Neptun's Registered subjects page. That workbook contains subject
+          codes, not the exact registered class groups, so the planner keeps
+          every Tanrend alternative but selects only one initial group in each
+          lecture/practice section. Review those groups or use Suggest
+          schedules. Use <code>DEMO-1</code> through
+          <code>DEMO-6</code> to try the planner without live Tanrend data.
+        </p>
+      </section>
+
+      <section>
+        <h3>3. Refine selected subjects</h3>
+        <p>
+          A selected class row has a green border; a row that would overlap the
+          timetable has a red border and a conflict label. These states also
+          have text and screen-reader labels, so color is not the only cue. A
+          subject's checkbox shows or hides all of its enabled meetings.
+          Subjects are listed alphabetically. Select a subject's name to open
+          its classes; the checkbox changes only when selected directly.
+          Lectures appear first and practices second, each ordered by weekday
+          and time. Choosing another class in one section replaces its current
+          selection without changing the other section. Use the remove button to
+          delete the subject from this schedule.
+        </p>
+        <p>
+          <strong>Suggest schedules</strong> compares valid group combinations.
+          It ranks options by the fewest conflicts first, then prefers the one
+          that replaces fewer currently selected groups. On wider screens,
+          options appear side by side. Each option shows only the groups it
+          would replace, organized by the weekday of the proposed class, with
+          the current and suggested group shown together. On smaller screens,
+          options stack into one column. <strong>Apply</strong> changes the timetable.
+        </p>
+      </section>
+
+      <section>
+        <h3>4. Read the timetable</h3>
+        <p>
+          Lectures are green, practices are blue, and conflicts are red. On
+          narrow screens, the visual week grid becomes a day-by-day schedule
+          list with the same class details.
+        </p>
+        <p>
+          Enable <strong>Ignore lecture conflicts</strong> only when lecture attendance
+          is not required. This changes conflict detection; it does not remove lectures
+          from the timetable.
+        </p>
+      </section>
+
+      <section>
+        <h3>5. Manage timetable plans</h3>
+        <p>
+          Use the selector at the top to switch plans. The adjacent buttons
+          rename or delete the current plan. <strong>New schedule</strong>
+          creates a separate plan, while <strong>Clear schedule</strong> removes every
+          subject from only the current plan.
+        </p>
+      </section>
+
+      <section>
+        <h3>6. Share or export</h3>
+        <p>
+          <strong>Copy link</strong> puts the enabled class codes and lecture conflict
+          setting into a URL. Anyone with that URL can read those codes. Opening it
+          creates a new local plan and preserves existing plans.
+        </p>
+        <p>
+          <strong>Export calendar</strong> downloads every enabled class in one pack.
+          The iCalendar (.ics) pack contains weekly recurring events and works with
+          several calendar apps. The Google CSV pack contains the next occurrence
+          of every class without weekly recurrence.
+        </p>
+      </section>
+
+      <section>
+        <h3>Storage and privacy</h3>
+        <p>
+          Schedules stay in this browser's local storage. Clearing site data,
+          using private browsing, or changing browsers can remove or hide them.
+        </p>
+        <p>This site does not include analytics or session recording.</p>
+      </section>
+    </article>
+  {/if}
+</Modal>
 
 <style>
-  .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    z-index: 1000;
-    overflow-y: auto;
-    padding: 20px;
+  .guide-content {
+    color: var(--color-text);
   }
 
-  .modal-content {
-    background: #2d2d2d;
-    border-radius: 8px;
-    padding: 24px;
-    max-width: 800px;
-    margin: 20px auto;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-    position: relative;
+  header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    margin: 0;
+    color: var(--color-accent-strong);
+    font-size: var(--text-2xl);
+  }
+
+  header p {
+    max-width: 62ch;
+    margin: 6px 0 0;
+    color: var(--color-text-muted);
   }
 
   .close-btn {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    padding: 0;
     border: none;
-    color: #b0b0b0;
-    font-size: 24px;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    color: var(--color-text-muted);
     cursor: pointer;
-    padding: 4px 8px;
-    border-radius: 4px;
-    z-index: 2;
   }
 
   .close-btn:hover {
-    color: #ffffff;
-    background: #3d3d3d;
+    background: var(--color-surface-3);
+    color: var(--color-text);
   }
 
-  .guide-content {
-    color: #ffffff;
+  section {
+    padding: 18px 0;
+    border-top: 1px solid var(--color-border);
   }
 
-  .guide-content h1 {
-    color: #4caf50;
-    font-size: 1.8em;
-    margin: 1.5em 0 0.8em;
+  h3 {
+    margin: 0 0 8px;
+    color: var(--color-accent-strong);
+    font-size: var(--text-lg);
   }
 
-  .guide-content h1:first-child {
-    margin-top: 0;
-  }
-
-  .guide-content h3 {
-    color: #4caf50;
-    margin: 1.2em 0 0.6em;
-  }
-
-  .guide-content p {
-    margin: 0 0 1em;
+  p,
+  ol {
+    margin: 0 0 10px;
     line-height: 1.6;
   }
 
-  .guide-content img {
-    max-width: 100%;
+  p:last-child,
+  ol:last-child {
+    margin-bottom: 0;
+  }
+
+  ol {
+    padding-left: 24px;
+  }
+
+  li + li {
+    margin-top: 8px;
+  }
+
+  code {
+    padding: 0.15em 0.4em;
     border-radius: 4px;
-    margin: 1em 0;
-  }
-
-  .guide-content ul {
-    margin: 0 0 1em;
-    padding-left: 2em;
-  }
-
-  .guide-content li {
-    margin-bottom: 0.5em;
-  }
-
-  .guide-content code,
-  .guide-note {
-    background: #1a1a1a;
-    border-radius: 4px;
-  }
-
-  .guide-content code {
-    padding: 0.2em 0.4em;
-    font-family: monospace;
+    background: var(--color-surface-2);
+    font-family: ui-monospace, Menlo, monospace;
     font-size: 0.9em;
   }
 
   .guide-note {
-    padding: 1em;
-    margin: 1em 0;
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border-left: 4px solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    line-height: 1.5;
   }
 
-  .guide-note p:last-child,
-  .guide-note ul:last-child {
-    margin-bottom: 0;
-  }
-
-  .guide-content strong {
-    color: #ffa726;
-  }
-
-  @media (max-width: 768px) {
-    .modal-content {
-      padding: 16px;
-      margin: 16px;
-    }
-
-    .guide-content h1 {
-      font-size: 1.5em;
+  @media (max-width: 640px) {
+    h2 {
+      font-size: var(--text-xl);
     }
   }
 </style>

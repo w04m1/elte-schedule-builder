@@ -1,5 +1,8 @@
 <script>
-  let { href, label = "Star on GitHub" } = $props();
+  import { language, t } from "../utils/i18n.js";
+
+  let { href, label = "" } = $props();
+  const displayLabel = $derived(label || t($language, "starOnGithub"));
 </script>
 
 <a
@@ -7,14 +10,14 @@
   {href}
   target="_blank"
   rel="noopener noreferrer"
-  aria-label={`${label} (opens in a new tab)`}
+  aria-label={`${displayLabel} (${t($language, "opensNewTab")})`}
 >
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path
       d="m12 2.75 2.78 5.63 6.22.9-4.5 4.39 1.06 6.2L12 16.94l-5.56 2.93 1.06-6.2L3 9.28l6.22-.9L12 2.75Z"
     />
   </svg>
-  <span>{label}</span>
+  <span>{displayLabel}</span>
 </a>
 
 <style>
@@ -24,10 +27,10 @@
     justify-content: center;
     gap: 8px;
     padding: 8px 14px;
-    border: 1px solid #686868;
-    border-radius: 6px;
-    background: #242424;
-    color: #fff;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    color: var(--color-text);
     font-weight: 600;
     text-decoration: none;
     transition:
@@ -37,20 +40,20 @@
   }
 
   .github-star-link:hover {
-    border-color: #f5c542;
-    background: #353535;
-    color: #fff;
+    border-color: var(--color-warning);
+    background: var(--color-surface-2);
+    color: var(--color-text);
     transform: translateY(-1px);
   }
 
   .github-star-link:focus-visible {
-    outline: 3px solid #f5c542;
+    outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 
   svg {
     width: 18px;
     height: 18px;
-    fill: #f5c542;
+    fill: var(--color-warning);
   }
 </style>

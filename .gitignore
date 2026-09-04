@@ -1,5 +1,36 @@
+# Dependencies
+/node_modules/
+
+# Generated output
+/coverage/
+/dist/
+/dist-ssr/
+/playwright-report/
+/test-results/
+*.tsbuildinfo
+
+# Local runtime data and caches
+/data/
+/.cache/
+/.npm/
+/.vite/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Environment and machine-local configuration
+.env
+.env.*
+!.env.example
+*.local
+
+# Local Codex project memory
+/.codex-vault/
+
 # Logs
-logs
+/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -7,26 +38,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-coverage
-playwright-report
-test-results
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-
-cache.db
-
-.env
+.vercel

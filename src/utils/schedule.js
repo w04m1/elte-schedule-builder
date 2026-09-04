@@ -1,6 +1,11 @@
-export async function fetchSubjectData(subjectCode) {
+export async function fetchSubjectClasses(searchTerm, searchMode = "code") {
+  if (!new Set(["code", "name", "instructor"]).has(searchMode)) {
+    throw new TypeError("Unsupported subject search mode");
+  }
+
+  const queryString = searchMode === "code" ? "" : `?by=${searchMode}`;
   const response = await fetch(
-    `/api/subject/${encodeURIComponent(subjectCode)}`,
+    `/api/subject/${encodeURIComponent(searchTerm)}${queryString}`,
   );
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -33,7 +38,7 @@ export function parseTableRow(row) {
     title,
     type,
     location: location !== "-" ? location : "",
-    instructor: instructor.trim(),
+    instructor,
     code: codeAndType.split(" (")[0],
   };
 }
@@ -77,6 +82,142 @@ export function getTanrendSubjectCode(code) {
   return parts.join("-");
 }
 
+function normalizeSearchValue(value) {
+  return String(value ?? "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase()
+    .trim();
+}
+
+function normalizeNameSearchValue(value) {
+  return normalizeSearchValue(value)
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function editDistance(first, second) {
+  const previous = Array.from(
+    { length: second.length + 1 },
+    (_, index) => index,
+  );
+
+  for (let firstIndex = 1; firstIndex <= first.length; firstIndex += 1) {
+    const current = [firstIndex];
+    for (let secondIndex = 1; secondIndex <= second.length; secondIndex += 1) {
+      current[secondIndex] = Math.min(
+        current[secondIndex - 1] + 1,
+        previous[secondIndex] + 1,
+        previous[secondIndex - 1] +
+          (first[firstIndex - 1] === second[secondIndex - 1] ? 0 : 1),
+      );
+    }
+    previous.splice(0, previous.length, ...current);
+  }
+
+  return previous[second.length];
+}
+
+export function getNameMatchDistance(candidate, query) {
+  const normalizedCandidate = normalizeNameSearchValue(candidate);
+  const normalizedQuery = normalizeNameSearchValue(query);
+  if (!normalizedCandidate || !normalizedQuery) return Number.POSITIVE_INFINITY;
+  if (normalizedCandidate.includes(normalizedQuery)) return 0;
+
+  const candidateWords = normalizedCandidate.split(" ");
+  const queryWords = normalizedQuery.split(" ");
+  const windowLength = queryWords.length;
+  let bestDistance = editDistance(normalizedCandidate, normalizedQuery);
+
+  for (
+    let index = 0;
+    index <= candidateWords.length - windowLength;
+    index += 1
+  ) {
+    bestDistance = Math.min(
+      bestDistance,
+      editDistance(
+        candidateWords.slice(index, index + windowLength).join(" "),
+        normalizedQuery,
+      ),
+    );
+  }
+
+  return bestDistance;
+}
+
+export function isTypoTolerantNameMatch(candidate, query) {
+  const normalizedQuery = normalizeNameSearchValue(query);
+  if (normalizedQuery.length < 4) {
+    return getNameMatchDistance(candidate, query) === 0;
+  }
+
+  const allowedDistance = Math.max(1, Math.ceil(normalizedQuery.length / 6));
+  return getNameMatchDistance(candidate, query) <= allowedDistance;
+}
+
+export function rankSubjectMatches(groups, query, limit = 3) {
+  const normalizedQuery = normalizeSearchValue(query);
+  if (!normalizedQuery || !Array.isArray(groups) || limit <= 0) return [];
+
+  const matchRank = (group) => {
+    const codes = String(group?.apiCode ?? "")
+      .split(",")
+      .map(normalizeSearchValue)
+      .filter(Boolean);
+    const title = normalizeSearchValue(group?.title);
+    const titleWords = title.split(/\s+/);
+    const instructors = [
+      ...new Set(
+        (group?.rows ?? group?.classes ?? [])
+          .map((row) => normalizeSearchValue(row?.instructor))
+          .filter(Boolean),
+      ),
+    ];
+    const instructorWords = instructors.flatMap((instructor) =>
+      instructor.split(/\s+/),
+    );
+
+    if (codes.includes(normalizedQuery)) return 0;
+    if (title === normalizedQuery) return 1;
+    if (instructors.includes(normalizedQuery)) return 2;
+    if (codes.some((code) => code.startsWith(normalizedQuery))) return 3;
+    if (title.startsWith(normalizedQuery)) return 4;
+    if (instructors.some((name) => name.startsWith(normalizedQuery))) return 5;
+    if (titleWords.some((word) => word.startsWith(normalizedQuery))) return 6;
+    if (instructorWords.some((word) => word.startsWith(normalizedQuery)))
+      return 7;
+    if (codes.some((code) => code.includes(normalizedQuery))) return 8;
+    if (title.includes(normalizedQuery)) return 9;
+    if (instructors.some((name) => name.includes(normalizedQuery))) return 10;
+
+    const titleDistance = getNameMatchDistance(group?.title, query);
+    const instructorDistance = Math.min(
+      ...instructors.map((name) => getNameMatchDistance(name, query)),
+    );
+    if (isTypoTolerantNameMatch(group?.title, query)) {
+      return 20 + titleDistance;
+    }
+    if (instructors.some((name) => isTypoTolerantNameMatch(name, query))) {
+      return 30 + instructorDistance;
+    }
+    return 100;
+  };
+
+  return groups
+    .map((group, index) => ({ group, index, rank: matchRank(group) }))
+    .sort(
+      (first, second) =>
+        first.rank - second.rank ||
+        first.group.title.length - second.group.title.length ||
+        first.group.title.localeCompare(second.group.title) ||
+        first.index - second.index,
+    )
+    .slice(0, limit)
+    .map(({ group }) => group);
+}
+
 export function getEventGroupNumber(event) {
   const eventCode =
     typeof event?.code === "string" && event.code.trim()
@@ -87,6 +228,18 @@ export function getEventGroupNumber(event) {
   const parts = eventCode.split("-");
 
   return parts.length >= 3 ? parts.at(-1).trim() : "";
+}
+
+export function getEventDisplayTitle(event) {
+  const title = String(event?.title ?? "").trim();
+  const type = String(event?.extendedProps?.type ?? event?.type ?? "").trim();
+
+  if (!title || !type) return title;
+
+  const appendedType = `(${type})`;
+  return title.toLocaleLowerCase().endsWith(appendedType.toLocaleLowerCase())
+    ? title.slice(0, -appendedType.length).trim()
+    : title;
 }
 
 export function createCalendarEvents(classes) {
@@ -129,10 +282,12 @@ export function checkTimeOverlap(first, second) {
   );
 }
 
+export function isLectureType(type) {
+  return (type ?? "").toLowerCase().includes("lecture");
+}
+
 function isLecture(event) {
-  return (event.extendedProps?.type ?? event.type ?? "")
-    .toLowerCase()
-    .includes("lecture");
+  return isLectureType(event.extendedProps?.type ?? event.type);
 }
 
 export function getConflictPairs(events, lectureExemption = false) {
@@ -152,9 +307,9 @@ export function getConflictPairs(events, lectureExemption = false) {
 }
 
 export function markConflicts(subjects, lectureExemption = false) {
-  const enabledEvents = subjects.flatMap((subject) =>
-    subject.events.filter((event) => event.enabled),
-  );
+  const enabledEvents = subjects
+    .filter((subject) => subject.enabled)
+    .flatMap((subject) => subject.events.filter((event) => event.enabled));
   const conflictingEvents = new Set(
     getConflictPairs(enabledEvents, lectureExemption).flatMap(
       ({ event1, event2 }) => [enabledEvents[event1], enabledEvents[event2]],
@@ -172,7 +327,26 @@ export function markConflicts(subjects, lectureExemption = false) {
 
 export function decodeSchedule(encodedSchedule) {
   try {
-    const parts = atob(encodedSchedule).split("|");
+    const decoded = atob(encodedSchedule);
+    if (decoded.startsWith("V2|")) {
+      const payload = JSON.parse(decodeURIComponent(decoded.slice(3)));
+      const fullCodes = Array.isArray(payload.codes)
+        ? payload.codes.filter((code) => typeof code === "string" && code)
+        : [];
+      const eventIdentities = Array.isArray(payload.eventIdentities)
+        ? payload.eventIdentities.filter(
+            (identity) => typeof identity === "string" && identity,
+          )
+        : [];
+      return {
+        baseCodes: [...new Set(fullCodes)].join(" "),
+        fullCodes,
+        eventIdentities,
+        lectureExemption: payload.lectureExemption === true,
+      };
+    }
+
+    const parts = decoded.split("|");
     const lectureExemption = parts.pop() === "1";
     const fullCodes = parts.flatMap((section) => {
       const match = section.match(/^([^{}]+)\{(.*)\}$/);
@@ -186,16 +360,39 @@ export function decodeSchedule(encodedSchedule) {
     return {
       baseCodes: [...new Set(fullCodes)].join(" "),
       fullCodes,
+      eventIdentities: [],
       lectureExemption,
     };
   } catch {
-    return { baseCodes: "", fullCodes: [], lectureExemption: false };
+    return {
+      baseCodes: "",
+      fullCodes: [],
+      eventIdentities: [],
+      lectureExemption: false,
+    };
   }
 }
 
-export function encodeSchedule(codes, lectureExemption = false) {
+export function encodeSchedule(
+  codes,
+  lectureExemption = false,
+  eventIdentities = [],
+) {
+  const uniqueCodes = [...new Set(codes)];
+  const uniqueEventIdentities = [...new Set(eventIdentities.filter(Boolean))];
+  if (uniqueEventIdentities.length > 0) {
+    const payload = encodeURIComponent(
+      JSON.stringify({
+        codes: uniqueCodes,
+        eventIdentities: uniqueEventIdentities,
+        lectureExemption: Boolean(lectureExemption),
+      }),
+    );
+    return btoa(`V2|${payload}`);
+  }
+
   const groups = new Map();
-  for (const code of new Set(codes)) {
+  for (const code of uniqueCodes) {
     const parts = code.split("-");
     const prefix = parts.length > 2 ? parts.shift() : "OTHER";
     const value = prefix === "OTHER" ? code : parts.join("-");
@@ -208,40 +405,46 @@ export function encodeSchedule(codes, lectureExemption = false) {
   return btoa(`${sections.join("|")}|${lectureExemption ? "1" : "0"}`);
 }
 
+const DAY_OF_WEEK_INDEX = {
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+};
+
+/**
+ * Get the date for a specific weekday in a timezone-safe manner.
+ * Avoids using toISOString() which can cause date shifts near midnight in non-UTC timezones.
+ *
+ * @param {string} dayOfWeek - Day name: "Monday", "Tuesday", etc.
+ * @param {number} weekOffset - 0 for the current week, 1 for the next week
+ * @returns {string} ISO date string in YYYY-MM-DD format
+ */
+function getWeekdayDate(dayOfWeek, weekOffset) {
+  const today = new Date();
+  const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+  const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
+  const daysToAdd = DAY_OF_WEEK_INDEX[dayOfWeek] - 1;
+
+  // Create date object to handle month/year overflow correctly
+  const eventDateObj = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() - daysToMonday + weekOffset * 7 + daysToAdd,
+  );
+
+  return formatDateToISO(eventDateObj);
+}
+
 /**
  * Get the date for a specific day of the current week in a timezone-safe manner.
- * Avoids using toISOString() which can cause date shifts near midnight in non-UTC timezones.
  *
  * @param {string} dayOfWeek - Day name: "Monday", "Tuesday", etc.
  * @returns {string} ISO date string in YYYY-MM-DD format
  */
 export function getWeekDateForDay(dayOfWeek) {
-  const dayMap = {
-    Monday: 1,
-    Tuesday: 2,
-    Wednesday: 3,
-    Thursday: 4,
-    Friday: 5,
-  };
-
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth();
-  const currentDate = today.getDate();
-  const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
-
-  // Calculate days to subtract to get to Monday (in local timezone)
-  const daysToMonday = currentDay === 0 ? 6 : currentDay - 1;
-  const mondayDate = currentDate - daysToMonday;
-
-  // Calculate days to add from Monday
-  const daysToAdd = dayMap[dayOfWeek] - 1;
-  const finalDate = mondayDate + daysToAdd;
-
-  // Create date object to handle month/year overflow correctly
-  const eventDateObj = new Date(currentYear, currentMonth, finalDate);
-
-  return formatDateToISO(eventDateObj);
+  return getWeekdayDate(dayOfWeek, 0);
 }
 
 /**
@@ -251,32 +454,7 @@ export function getWeekDateForDay(dayOfWeek) {
  * @returns {string} ISO date string in YYYY-MM-DD format
  */
 export function getNextWeekDateForDay(dayOfWeek) {
-  const dayMap = {
-    Monday: 1,
-    Tuesday: 2,
-    Wednesday: 3,
-    Thursday: 4,
-    Friday: 5,
-  };
-
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const currentMonth = today.getMonth();
-  const currentDate = today.getDate();
-  const currentDay = today.getDay();
-
-  // Calculate days until next Monday (ensure it's at least 7 if today is Monday)
-  const daysUntilMonday = (8 - currentDay) % 7 || 7;
-  const mondayDate = currentDate + daysUntilMonday;
-
-  // Calculate days to add from Monday
-  const daysToAdd = dayMap[dayOfWeek] - 1;
-  const finalDate = mondayDate + daysToAdd;
-
-  // Create date object to handle month/year overflow correctly
-  const eventDateObj = new Date(currentYear, currentMonth, finalDate);
-
-  return formatDateToISO(eventDateObj);
+  return getWeekdayDate(dayOfWeek, 1);
 }
 
 /**

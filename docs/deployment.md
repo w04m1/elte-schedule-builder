@@ -1,5 +1,39 @@
 # Releases and deployment
 
+## Public fork on Vercel
+
+The `unnobatroo/elte-schedule-builder` fork is published at
+[schedule.jalols.page](https://schedule.jalols.page). Vercel builds the Vite
+frontend and exposes `api/subject/[query].js` as the serverless adapter for the
+existing Express application.
+
+The adapter preserves the shared Tanrend validation, request queue, rate limit,
+demo data, and security headers. It substitutes a bounded in-memory TTL cache
+because Vercel function instances do not provide durable local storage. Cache
+entries survive while an instance stays warm and disappear on a cold start;
+this affects performance, not schedule correctness. Local and container
+deployments continue to use SQLite.
+
+Deploy from the repository root:
+
+```bash
+vercel deploy
+vercel deploy --prod
+```
+
+Verify both the SPA and API after deployment:
+
+```bash
+curl --fail https://schedule.jalols.page/
+curl --fail https://schedule.jalols.page/api/subject/DEMO-1
+```
+
+The `/import/*` and `/tanrend` rewrites in `vercel.json` preserve SPA deep links
+without intercepting the `/api` function route. The custom domain uses an `A`
+record for `schedule.jalols.page` pointing to Vercel.
+
+## Upstream container releases
+
 Production releases are built from version tags. A tag such as `v0.1.0` must
 match the version in `package.json`. The release workflow runs the complete test
 suite, publishes a multi-platform container to GitHub Container Registry

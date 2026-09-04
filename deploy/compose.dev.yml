@@ -1,0 +1,54 @@
+services:
+  backend:
+    build:
+      context: ..
+      target: development
+    image: elte-schedule-builder-development
+    working_dir: /workspace
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ..:/workspace
+      - backend-node-modules:/workspace/node_modules
+      - sqlite-data:/workspace/data
+    command: sh -c "npm ci && node --watch server/index.js"
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:3000/api/subject/DEMO-1')
+          .then(response => process.exit(response.ok ? 0 : 1))
+          .catch(() => process.exit(1))
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+  frontend:
+    build:
+      context: ..
+      target: development
+    image: elte-schedule-builder-development
+    working_dir: /workspace
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+      VITE_API_PROXY_TARGET: http://backend:3000
+    volumes:
+      - ..:/workspace
+      - frontend-node-modules:/workspace/node_modules
+    command: sh -c "npm ci && npm run dev:frontend -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "5173:5173"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  backend-node-modules: {}
+  frontend-node-modules: {}
+  sqlite-data: {}

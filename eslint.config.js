@@ -38,6 +38,12 @@ export default defineConfig([
     },
   },
   {
+    files: ["src/**/*.{js,svelte}"],
+    rules: {
+      "no-console": ["error", { allow: ["warn", "error"] }],
+    },
+  },
+  {
     rules: {
       "no-unused-vars": [
         "error",

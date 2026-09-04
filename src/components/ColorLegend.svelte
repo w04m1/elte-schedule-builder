@@ -1,201 +1,135 @@
 <script>
-  import { onMount } from "svelte";
-  import { STORAGE_KEYS } from "../utils/storageKeys.js";
-
-  let isVisible = $state(true);
-
-  onMount(() => {
-    const stored = localStorage.getItem(STORAGE_KEYS.legendVisible);
-    if (stored !== null) {
-      isVisible = stored === "true";
-    }
-  });
-
-  function toggleVisibility() {
-    isVisible = !isVisible;
-    localStorage.setItem(
-      STORAGE_KEYS.legendVisible,
-      isVisible ? "true" : "false",
-    );
-  }
-
+  import { language, t } from "../utils/i18n.js";
   let { lectureExemption = false, onToggleLectureExemption } = $props();
-
-  function toggleExemption() {
-    onToggleLectureExemption(!lectureExemption);
-  }
 </script>
 
-<div class:hidden={!isVisible} class="color-legend">
-  <button
-    class="toggle-btn"
-    onclick={toggleVisibility}
-    title={isVisible ? "Hide legend" : "Show legend"}
-  >
-    {isVisible ? "←" : "→"}
-  </button>
-  <div class="legend-content">
-    <h3>Event Types</h3>
-    <div class="legend-item">
-      <div class="color-box lecture"></div>
-      <span>Lecture</span>
-    </div>
-    <div class="legend-item">
-      <div class="color-box practice"></div>
-      <span>Practice</span>
-    </div>
-    <div class="legend-item">
-      <div class="color-box conflict"></div>
-      <span>Conflict</span>
-    </div>
-
-    <hr class="legend-divider" />
-
-    <div class="legend-item exemption-item">
-      <label class="switch">
-        <input
-          type="checkbox"
-          checked={lectureExemption}
-          onchange={toggleExemption}
-        />
-        <span class="slider round"></span>
-      </label>
-      <span>Lecture Exemption</span>
-    </div>
+<section class="calendar-options" aria-label={t($language, "timetableOptions")}>
+  <div class="legend">
+    <ul>
+      <li>
+        <span class="color-box lecture" aria-hidden="true"></span>
+        {t($language, "lecture")}
+      </li>
+      <li>
+        <span class="color-box practice" aria-hidden="true"></span>
+        {t($language, "practice")}
+      </li>
+      <li>
+        <span class="color-box conflict" aria-hidden="true"></span>
+        {t($language, "conflict")}
+      </li>
+    </ul>
   </div>
-</div>
+
+  <label class="exemption-item">
+    <input
+      type="checkbox"
+      checked={lectureExemption}
+      onchange={() => onToggleLectureExemption?.(!lectureExemption)}
+    />
+    <span>
+      <strong>{t($language, "ignoreLectureConflicts")}</strong>
+    </span>
+  </label>
+</section>
 
 <style>
-  .color-legend {
-    position: fixed;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #2d2d2d;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    width: 200px;
-    z-index: 100;
-    transition: transform 0.3s ease;
-  }
-
-  .color-legend.hidden {
-    transform: translateY(-50%) translateX(-225px);
-  }
-
-  .color-legend.hidden .legend-content {
-    opacity: 0;
-  }
-
-  .legend-content {
-    opacity: 1;
-    transition: opacity 0.2s ease;
-  }
-
-  .toggle-btn {
-    position: absolute;
-    right: -20px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 20px;
-    height: 40px;
-    border-radius: 0 4px 4px 0;
-    background: #2d2d2d;
-    border: none;
-    color: white;
-    cursor: pointer;
+  .calendar-options {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.2);
+    justify-content: flex-end;
+    gap: var(--space-3);
+    color: var(--color-text);
   }
 
-  h3 {
-    margin: 0 0 12px 0;
-    font-size: 1em;
-    color: #ffffff;
-  }
-
-  .legend-item {
+  .legend {
     display: flex;
     align-items: center;
+    gap: var(--space-3);
+  }
+
+  ul {
+    display: flex;
+    flex-wrap: nowrap;
     gap: 10px;
-    margin-bottom: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
   }
 
-  .legend-divider {
-    border: 0;
-    height: 1px;
-    background: #444;
-    margin: 12px 0;
-  }
-
-  .switch {
-    position: relative;
-    display: inline-block;
-    width: 40px;
-    height: 20px;
-  }
-
-  .switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-
-  .slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: 0.4s;
-    border-radius: 34px;
-  }
-
-  .slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 2px;
-    bottom: 2px;
-    background-color: white;
-    transition: 0.4s;
-    border-radius: 50%;
-  }
-
-  input:checked + .slider {
-    background-color: #4caf50;
-  }
-
-  input:checked + .slider:before {
-    transform: translateX(20px);
-  }
-
+  li,
   .exemption-item {
+    display: flex;
     align-items: center;
+    gap: 6px;
+  }
+
+  li {
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
   }
 
   .color-box {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
   }
 
-  .color-box.lecture {
-    background-color: #4caf50;
+  .lecture {
+    background: var(--color-event-lecture);
   }
 
-  .color-box.practice {
-    background-color: #2196f3;
+  .practice {
+    background: var(--color-event-practice);
   }
 
-  .color-box.conflict {
-    background-color: #ff4444;
+  .conflict {
+    background: var(--color-event-conflict);
+  }
+
+  .exemption-item {
+    cursor: pointer;
+  }
+
+  .exemption-item input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--color-primary);
+  }
+
+  .exemption-item span {
+    display: grid;
+  }
+
+  .exemption-item strong {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 720px) {
+    .calendar-options {
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: var(--space-3);
+    }
+
+    .legend {
+      width: 100%;
+    }
+
+    ul {
+      flex-wrap: wrap;
+    }
+
+    .exemption-item strong {
+      white-space: normal;
+    }
+
+    .exemption-item {
+      width: 100%;
+    }
   }
 </style>

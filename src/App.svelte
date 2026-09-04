@@ -2,14 +2,15 @@
   import { onMount } from "svelte";
   import Calendar from "./components/Calendar.svelte";
   import FAQ from "./components/FAQ.svelte";
-  import ColorLegend from "./components/ColorLegend.svelte";
   import ScheduleManager from "./components/ScheduleManager.svelte";
   import SubjectControls from "./components/SubjectControls.svelte";
   import AppNotices from "./components/AppNotices.svelte";
   import AppFooter from "./components/AppFooter.svelte";
   import AppHeader from "./components/AppHeader.svelte";
-  import ScheduleWorkspace from "./components/ScheduleWorkspace.svelte";
+  import ScheduleInput from "./components/ScheduleInput.svelte";
+  import ConfirmDialog from "./components/ConfirmDialog.svelte";
   import { decodeSchedule, markConflicts } from "./utils/schedule.js";
+  import { applyScheduleSuggestion } from "./utils/scheduleOptimizer.js";
   import {
     activateSchedule,
     addSchedule,
@@ -25,26 +26,38 @@
     getEnabledEventCodes,
     getEnabledEvents,
     mergeScheduleEvents,
+    selectScheduleClass,
     setSubjectEnabled,
     toggleScheduleEvent,
   } from "./utils/scheduleState.js";
   import { STORAGE_KEYS } from "./utils/storageKeys.js";
+  import { language, t } from "./utils/i18n.js";
 
   let events = $state([]);
   let allSubjects = $state([]);
   let showFAQ = $state(false);
   let showWarning = $state(false);
-  let showMobileWarning = $state(false);
   let faqRead = $state(false);
-  let importedCodes = $state({ baseCodes: "", fullCodes: [] });
+  let importedCodes = $state({
+    baseCodes: "",
+    fullCodes: [],
+    eventIdentities: [],
+  });
   let lectureExemption = $state(false);
   let scheduleStore = $state(null);
   let schedules = $state([]);
   let activeScheduleId = $state("");
   let activeCodes = $derived(getEnabledEventCodes(allSubjects));
+  let confirmDialog = $state({
+    open: false,
+    title: "",
+    message: "",
+    confirmLabel: "",
+    action: null,
+  });
   const githubRepositoryUrl =
     import.meta.env.VITE_GITHUB_REPOSITORY_URL?.trim() ||
-    "https://github.com/w04m1/elte-schedule-builder";
+    "https://github.com/unnobatroo/elte-schedule-builder";
 
   onMount(() => {
     const path = window.location.pathname;
@@ -56,15 +69,19 @@
       const {
         baseCodes,
         fullCodes,
+        eventIdentities,
         lectureExemption: importedExemption,
       } = decodeSchedule(base64String);
       if (fullCodes.length > 0) {
         storedSchedules = addSchedule(storedSchedules, {
-          name: getUniqueScheduleName(storedSchedules, "Imported schedule"),
+          name: getUniqueScheduleName(
+            storedSchedules,
+            t($language, "importedSchedule"),
+          ),
           lectureExemption: importedExemption,
         });
         saveScheduleStore(localStorage, storedSchedules);
-        importedCodes = { baseCodes, fullCodes };
+        importedCodes = { baseCodes, fullCodes, eventIdentities };
       }
       // Remove the import path from URL without reloading
       window.history.replaceState({}, "", "/");
@@ -79,31 +96,6 @@
 
     // Check if FAQ was read before
     faqRead = localStorage.getItem(STORAGE_KEYS.faqRead) === "true";
-
-    const mql = window.matchMedia(
-      "(max-width: 768px) and (orientation: portrait)",
-    );
-    const mobileWarningShown = localStorage.getItem(
-      STORAGE_KEYS.mobileWarningShown,
-    );
-    showMobileWarning = mql.matches && !mobileWarningShown;
-
-    const handleOrientationChange = (e) => {
-      showMobileWarning =
-        e.matches && !localStorage.getItem(STORAGE_KEYS.mobileWarningShown);
-    };
-
-    const handleStoredScheduleUpdate = () => {
-      applyScheduleStore(loadScheduleStore(localStorage));
-    };
-
-    mql.addEventListener("change", handleOrientationChange);
-    window.addEventListener("scheduleUpdated", handleStoredScheduleUpdate);
-
-    return () => {
-      mql.removeEventListener("change", handleOrientationChange);
-      window.removeEventListener("scheduleUpdated", handleStoredScheduleUpdate);
-    };
   });
 
   function closeWarning() {
@@ -111,18 +103,16 @@
     localStorage.setItem(STORAGE_KEYS.warningShown, "true");
   }
 
-  function closeMobileWarning() {
-    showMobileWarning = false;
-    localStorage.setItem(STORAGE_KEYS.mobileWarningShown, "true");
-  }
-
   function handleScheduleUpdate(eventData) {
     allSubjects = mergeScheduleEvents(allSubjects, eventData);
     computeConflicts();
     saveAndUpdate();
-    if (importedCodes.fullCodes.length > 0) {
-      importedCodes = { baseCodes: "", fullCodes: [] };
-    }
+  }
+
+  function handleClassSelection(eventData, selectedClass) {
+    allSubjects = selectScheduleClass(allSubjects, eventData, selectedClass);
+    computeConflicts();
+    saveAndUpdate();
   }
 
   function saveAndUpdate() {
@@ -153,7 +143,12 @@
 
   function createSchedule() {
     persistAndApply(
-      addSchedule(scheduleStore ?? loadScheduleStore(localStorage)),
+      addSchedule(scheduleStore ?? loadScheduleStore(localStorage), {
+        name: getUniqueScheduleName(
+          scheduleStore ?? loadScheduleStore(localStorage),
+          t($language, "newScheduleName"),
+        ),
+      }),
     );
   }
 
@@ -168,11 +163,29 @@
     schedules = scheduleStore.schedules;
   }
 
+  function requestConfirm({ title, message, confirmLabel, action }) {
+    confirmDialog = { open: true, title, message, confirmLabel, action };
+  }
+
+  function closeConfirmDialog() {
+    confirmDialog = { ...confirmDialog, open: false, action: null };
+  }
+
+  function runConfirmedAction() {
+    const { action } = confirmDialog;
+    closeConfirmDialog();
+    action?.();
+  }
+
   function deleteSchedule(scheduleId) {
     const schedule = schedules.find((item) => item.id === scheduleId);
     if (!schedule || schedules.length === 1) return;
-    if (!confirm(`Delete "${schedule.name}"? This cannot be undone.`)) return;
-    persistAndApply(removeSchedule(scheduleStore, scheduleId));
+    requestConfirm({
+      title: t($language, "deleteSchedule"),
+      message: t($language, "deleteScheduleMessage", { name: schedule.name }),
+      confirmLabel: t($language, "delete"),
+      action: () => persistAndApply(removeSchedule(scheduleStore, scheduleId)),
+    });
   }
 
   function updateEvents() {
@@ -191,6 +204,12 @@
     saveAndUpdate();
   }
 
+  function applySuggestion(suggestion) {
+    allSubjects = applyScheduleSuggestion(allSubjects, suggestion);
+    computeConflicts();
+    saveAndUpdate();
+  }
+
   function deleteSubject(title) {
     allSubjects = allSubjects.filter((subject) => subject.title !== title);
     computeConflicts();
@@ -198,11 +217,16 @@
   }
 
   function resetAll() {
-    if (confirm("Clear all subjects from this schedule?")) {
-      allSubjects = [];
-      events = [];
-      saveAndUpdate();
-    }
+    requestConfirm({
+      title: t($language, "resetSchedule"),
+      message: t($language, "clearScheduleMessage"),
+      confirmLabel: t($language, "clear"),
+      action: () => {
+        allSubjects = [];
+        events = [];
+        saveAndUpdate();
+      },
+    });
   }
 
   function computeConflicts() {
@@ -233,88 +257,151 @@
   }
 </script>
 
-<main>
+<main id="main-content" tabindex="-1">
   <div class="container">
-    <AppHeader
-      {githubRepositoryUrl}
-      {faqRead}
-      hasSubjects={allSubjects.length > 0}
-      onOpenFAQ={openFAQ}
-      onReset={resetAll}
-    />
-    {#key activeScheduleId}
-      <ScheduleWorkspace
-        {events}
-        {activeCodes}
-        {lectureExemption}
-        {importedCodes}
-        onScheduleUpdate={handleScheduleUpdate}
-        onImportComplete={() =>
-          (importedCodes = { baseCodes: "", fullCodes: [] })}
+    <AppHeader {faqRead} onOpenFAQ={openFAQ} />
+    <AppNotices {showWarning} onCloseWarning={closeWarning} />
+    <div class="planner-toolbar">
+      <ScheduleManager
+        {schedules}
+        {activeScheduleId}
+        onCreate={createSchedule}
+        onSwitch={switchSchedule}
+        onRename={handleRenameSchedule}
+        onDelete={deleteSchedule}
+        hasSubjects={allSubjects.length > 0}
+        onReset={resetAll}
       />
-    {/key}
-    {#if allSubjects.length > 0}
-      <SubjectControls
-        subjects={allSubjects}
-        onToggleSubject={toggleSubject}
-        onToggleEvent={toggleEvent}
-        onDeleteSubject={deleteSubject}
-      />
-    {/if}
-    <Calendar {events} {lectureExemption} />
+    </div>
+    <section
+      class="builder-workspace"
+      aria-label={t($language, "schedulePlanner")}
+    >
+      <div class="builder-pane search-pane">
+        {#key activeScheduleId}
+          <ScheduleInput
+            {importedCodes}
+            selectedEvents={events}
+            {lectureExemption}
+            onScheduleUpdate={handleScheduleUpdate}
+            onClassSelection={handleClassSelection}
+            onImportComplete={() =>
+              (importedCodes = {
+                baseCodes: "",
+                fullCodes: [],
+                eventIdentities: [],
+              })}
+          />
+        {/key}
+      </div>
+      <div class="builder-pane selected-pane">
+        <SubjectControls
+          subjects={allSubjects}
+          onToggleSubject={toggleSubject}
+          onToggleEvent={toggleEvent}
+          onDeleteSubject={deleteSubject}
+        />
+      </div>
+    </section>
+    <section
+      class="calendar-shell"
+      aria-label={t($language, "schedulePlanner")}
+    >
+      {#key $language}
+        <Calendar
+          {events}
+          {activeCodes}
+          subjects={allSubjects}
+          {lectureExemption}
+          onToggleLectureExemption={toggleLectureExemption}
+          onApplySuggestion={applySuggestion}
+        />
+      {/key}
+    </section>
     <AppFooter {githubRepositoryUrl} />
   </div>
-  <ColorLegend
-    {lectureExemption}
-    onToggleLectureExemption={toggleLectureExemption}
-  />
-  <ScheduleManager
-    {schedules}
-    {activeScheduleId}
-    onCreate={createSchedule}
-    onSwitch={switchSchedule}
-    onRename={handleRenameSchedule}
-    onDelete={deleteSchedule}
-  />
 </main>
 
 <FAQ isOpen={showFAQ} onClose={closeFAQ} />
 
-<AppNotices
-  {showWarning}
-  {showMobileWarning}
-  onCloseWarning={closeWarning}
-  onCloseMobileWarning={closeMobileWarning}
+<ConfirmDialog
+  isOpen={confirmDialog.open}
+  title={confirmDialog.title}
+  message={confirmDialog.message}
+  confirmLabel={confirmDialog.confirmLabel}
+  cancelLabel={t($language, "cancel")}
+  onConfirm={runConfirmedAction}
+  onCancel={closeConfirmDialog}
 />
 
 <style>
-  :global(body) {
-    margin: 0;
-    padding: 0;
-    background: #121212;
-    color: #ffffff;
-    font-family:
-      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans,
-      Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-  }
-
   main {
     min-height: 100vh;
-    padding: 20px;
+    padding: 14px 18px 28px;
   }
 
   .container {
-    max-width: 1200px;
+    max-width: 1440px;
     margin: 0 auto;
-    padding: 20px;
-    background: #1a1a1a;
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .planner-toolbar {
+    margin-bottom: 10px;
+  }
+
+  .builder-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.03fr) minmax(0, 0.97fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .builder-pane {
+    min-width: 0;
+    min-height: 240px;
+    overflow: visible;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-1);
+  }
+
+  .selected-pane {
+    overflow: hidden;
+  }
+
+  .calendar-shell {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-1);
+  }
+
+  @media (max-width: 1240px) {
+    .builder-workspace {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .builder-pane {
+      min-height: 0;
+    }
   }
 
   @media (max-width: 768px) {
-    .container {
-      padding: 15px;
+    main {
+      padding: 8px;
+    }
+
+    .builder-workspace,
+    .planner-toolbar {
+      margin-bottom: 8px;
+    }
+
+    .builder-pane,
+    .calendar-shell {
+      border-radius: var(--radius-md);
     }
   }
 </style>

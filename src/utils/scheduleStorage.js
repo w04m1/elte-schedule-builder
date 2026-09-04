@@ -1,7 +1,12 @@
 import { STORAGE_KEYS } from "./storageKeys.js";
+import {
+  getEventCode,
+  getEventSlotIdentity,
+  getEventType,
+} from "./scheduleState.js";
 
 export const SCHEDULES_STORAGE_KEY = STORAGE_KEYS.schedules;
-export const DEFAULT_SCHEDULE_NAME = "Default schedule";
+const DEFAULT_SCHEDULE_NAME = "Default schedule";
 
 function createScheduleId() {
   if (globalThis.crypto?.randomUUID) {
@@ -19,6 +24,42 @@ function readJson(storage, key, fallback) {
   }
 }
 
+function repairDuplicateSelections(subjects) {
+  return subjects.map((subject) => {
+    if (!Array.isArray(subject?.events)) return subject;
+
+    const enabledSlots = new Set();
+    let repaired = false;
+    const events = subject.events.map((event) => {
+      if (
+        !event?.enabled ||
+        !getEventCode(event) ||
+        !event.dayOfWeek ||
+        !event.startTime ||
+        !getEventType(event)
+      ) {
+        return event;
+      }
+
+      const slotIdentity = getEventSlotIdentity(event);
+      if (!enabledSlots.has(slotIdentity)) {
+        enabledSlots.add(slotIdentity);
+        return event;
+      }
+
+      repaired = true;
+      return { ...event, enabled: false };
+    });
+
+    if (!repaired) return subject;
+    return {
+      ...subject,
+      events,
+      enabled: events.some((event) => event.enabled),
+    };
+  });
+}
+
 function normalizeSchedule(schedule, fallbackName, makeId) {
   return {
     id:
@@ -27,7 +68,9 @@ function normalizeSchedule(schedule, fallbackName, makeId) {
       typeof schedule?.name === "string" && schedule.name.trim()
         ? schedule.name.trim()
         : fallbackName,
-    subjects: Array.isArray(schedule?.subjects) ? schedule.subjects : [],
+    subjects: repairDuplicateSelections(
+      Array.isArray(schedule?.subjects) ? schedule.subjects : [],
+    ),
     lectureExemption: schedule?.lectureExemption === true,
   };
 }
@@ -37,7 +80,7 @@ export function saveScheduleStore(storage, store) {
   return store;
 }
 
-export function loadScheduleStore(storage, makeId = createScheduleId) {
+export function readScheduleStore(storage, makeId = createScheduleId) {
   const stored = readJson(storage, SCHEDULES_STORAGE_KEY, null);
   if (
     stored &&
@@ -52,11 +95,7 @@ export function loadScheduleStore(storage, makeId = createScheduleId) {
     )
       ? stored.activeScheduleId
       : schedules[0].id;
-    const normalized = { version: 1, activeScheduleId, schedules };
-    if (JSON.stringify(normalized) !== JSON.stringify(stored)) {
-      saveScheduleStore(storage, normalized);
-    }
-    return normalized;
+    return { version: 1, activeScheduleId, schedules };
   }
 
   const legacySubjects = readJson(
@@ -78,11 +117,20 @@ export function loadScheduleStore(storage, makeId = createScheduleId) {
     DEFAULT_SCHEDULE_NAME,
     makeId,
   );
-  return saveScheduleStore(storage, {
+  return {
     version: 1,
     activeScheduleId: schedule.id,
     schedules: [schedule],
-  });
+  };
+}
+
+export function loadScheduleStore(storage, makeId = createScheduleId) {
+  const stored = readJson(storage, SCHEDULES_STORAGE_KEY, null);
+  const store = readScheduleStore(storage, makeId);
+  if (!stored || JSON.stringify(store) !== JSON.stringify(stored)) {
+    return saveScheduleStore(storage, store);
+  }
+  return store;
 }
 
 export function getActiveSchedule(store) {
@@ -104,11 +152,13 @@ export function updateActiveSchedule(store, updates) {
   };
 }
 
-export function addSchedule(
-  store,
-  { name, subjects = [], lectureExemption = false } = {},
-  makeId = createScheduleId,
-) {
+/**
+ * @param {object} store
+ * @param {{ name?: string, subjects?: object[], lectureExemption?: boolean }} [options]
+ * @param {() => string} [makeId]
+ */
+export function addSchedule(store, options = {}, makeId = createScheduleId) {
+  const { name, subjects = [], lectureExemption = false } = options;
   const schedule = normalizeSchedule(
     { name, subjects, lectureExemption },
     getUniqueScheduleName(store, "New schedule"),

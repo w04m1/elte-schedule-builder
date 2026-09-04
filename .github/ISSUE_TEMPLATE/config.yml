@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Support and usage questions
-    url: https://github.com/w04m1/elte-schedule-builder/blob/main/SUPPORT.md
+    url: https://github.com/w04m1/elte-schedule-builder/blob/main/.github/SUPPORT.md
     about: Read the support guide before opening an issue.
   - name: Report a security vulnerability
-    url: https://github.com/w04m1/elte-schedule-builder/blob/main/SECURITY.md
+    url: https://github.com/w04m1/elte-schedule-builder/blob/main/.github/SECURITY.md
     about: Follow the private reporting instructions instead of creating a public issue.

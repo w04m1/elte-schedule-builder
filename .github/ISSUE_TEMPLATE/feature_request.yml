@@ -37,7 +37,7 @@ body:
         - label: Conflict detection or lecture exemption
         - label: Saved schedules or legacy local storage
         - label: Shared schedule URLs
-        - label: Local calendar dates or Google Calendar export
+        - label: Local calendar dates or calendar export
         - label: Tanrend requests, throttling, or caching
   - type: textarea
     id: context
