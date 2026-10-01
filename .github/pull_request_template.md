@@ -1,6 +1,6 @@
 ## Outcome
 
-Describe the user or contributor outcome and why this change is needed.
+What changes for users or contributors, and why?
 
 ## Changes
 
@@ -8,9 +8,9 @@ Describe the user or contributor outcome and why this change is needed.
 
 ## Compatibility and risk
 
-Describe any impact on class selection, conflicts, imports, shared URLs,
-`localStorage`, local calendar dates, Tanrend throttling, caching, or deployment.
-Write “None” if these areas are unaffected.
+Does this touch class selection, conflicts, imports, shared URLs,
+`localStorage`, calendar dates, Tanrend throttling, caching, or deployment?
+Write "None" if not.
 
 ## Verification
 
@@ -19,16 +19,16 @@ Write “None” if these areas are unaffected.
 - [ ] `npm run build`
 - [ ] `npm run test:e2e`
 - [ ] `git diff --check`
-- [ ] I added or updated regression coverage for behavior changes.
-- [ ] I ran `npm audit --omit=dev` if dependencies changed.
-- [ ] I verified `/api/subject/DEMO-1` if backend behavior changed.
+- [ ] Regression coverage added or updated for behavior changes.
+- [ ] `npm audit --omit=dev` if dependencies changed.
+- [ ] `/api/subject/DEMO-1` verified if backend behavior changed.
 
-Additional focused or manual verification:
+Other checks run:
 
 ## UI evidence
 
-Add before/after screenshots for visible UI changes, or write “Not applicable.”
+Before/after screenshots, or "Not applicable."
 
 ## Follow-up work
 
-List deferred work, known limitations, or follow-up risks.
+Deferred work, known limitations, or risks.

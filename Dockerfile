@@ -26,9 +26,10 @@ COPY package*.json .npmrc ./
 RUN npm ci --omit=dev
 
 COPY --from=build /app/dist ./dist
-COPY server.js server-utils.js security-headers.js runtime-config.js server-logger.js ./
+COPY server ./server
+COPY config/runtime.js ./config/runtime.js
 
 RUN mkdir -p /app/data
 VOLUME /app/data
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["node", "server/index.js"]

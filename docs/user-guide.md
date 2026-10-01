@@ -1,74 +1,63 @@
-# User guide 🧭
+# User guide
 
-ELTE Schedule Builder helps compare class groups before registration and keep a
-personal schedule in one browser. It does not register classes and is not an
-official ELTE service.
+Compare class groups before registration and keep a schedule in one browser.
+Not an official ELTE service — always check your final timetable in Neptun.
 
-[Try DEMO data](#try-it-with-demo-data) · [Build a schedule](#build-a-schedule-from-subject-codes) · [Share](#share-a-schedule) · [Export](#export-to-google-calendar) · [Troubleshoot](#storage-and-troubleshooting)
+## Language and demo data
 
-> [!IMPORTANT]
-> Always verify your final timetable in Neptun or another official ELTE system.
+English and Hungarian. First visit picks your device's primary language;
+switch anytime with EN/HU in the header. `DEMO-1` through `DEMO-6` run the
+whole app without live Tanrend data.
 
-## Try it with DEMO data
+## Build a schedule
 
-Use `DEMO-1` through `DEMO-6` when you want to explore the application without
-depending on live Tanrend data. DEMO subjects follow the same application flow
-as real subject codes but are served locally by the backend.
+1. Type a subject code, course name, or professor into **Add courses from
+   Tanrend**. Codes must be exact; names forgive small typos.
+2. Pick a suggestion (arrow keys, then Enter) or hit **Find courses** for every
+   match.
+3. Lectures first, then practices, sorted by weekday and time. Click a row to
+   pick it, or **Add all groups** to keep every option.
+4. Click a subject's name to edit its classes. The checkbox only shows or
+   hides it on the timetable.
 
-## Build a schedule from subject codes
+The calendar is a fixed Monday–Friday week, 08:00–21:00. On phones it becomes
+a day-by-day list.
 
-1. Open **Schedule Builder**.
-2. Paste one or more subject codes from Neptun. Whitespace and commas are
-   accepted as separators.
-3. Select **Generate schedule**.
-4. Review any subjects for which Tanrend returned no usable classes.
-5. Use the subject and event checkboxes to keep only the classes you want.
+**Neptun import:** the Registered subjects `.xlsx` has subject codes, not your
+exact groups — the planner picks one starting group per section. Review them
+or run **Suggest schedules**. Re-importing keeps picks that are still
+available.
 
-Only enabled events appear in the calendar and in sharing or export actions.
+## Conflicts and suggestions
 
-## Search and select a class
+Overlapping classes are marked red. **Ignore lecture conflicts** skips
+lectures when checking — only if attendance is optional.
 
-1. Open **Search**.
-2. Enter a subject code such as `DEMO-1` and select **Search**.
-3. Review the available time, group, instructor, and location.
-4. Select **Add to schedule** for the class you want.
-
-Selecting a different group of the same type replaces the enabled group while
-preserving the rest of that subject.
-
-## Conflicts and lecture exemption
-
-Enabled events that overlap are marked as conflicts. The lecture-exemption
-setting lets the planner ignore lectures when computing conflicts. Use this ONLY IF you have Lecture Exemption.
+**Suggest schedules** ranks combinations by fewest conflicts, then fewest
+swaps from your current picks. Each option shows only what would change;
+**Apply** updates the timetable.
 
 ## Multiple schedules
 
-Use **My schedules** to create, switch, rename, or delete local schedules. Each
-schedule keeps its own subjects and lecture-exemption setting. The last
-remaining schedule cannot be deleted.
+The **Schedule** toolbar creates, renames, switches, and deletes plans. Each
+keeps its own subjects and settings. The last one can't be deleted.
 
-## Share a schedule
+## Share and export
 
-**Share Schedule** copies a URL containing the enabled class codes and
-lecture-exemption setting. Opening it creates a new local schedule instead of
-overwriting schedules already saved in that browser.
+**Copy link** puts your enabled class codes into a URL — anyone with it can
+read them. Opening a link adds a new local plan without touching existing
+ones.
 
-Treat share links as readable information: anyone with the URL can recover the
-class codes it contains.
+**Export calendar** downloads everything enabled in one file:
 
-## Export to Google Calendar
+- **iCalendar (.ics)** — weekly recurring events, works in most calendar apps.
+  Recommended.
+- **Google CSV** — only the next occurrence of each class, no recurrence.
 
-**Export to Google Calendar** lists the currently visible events. Each **Add to
-Calendar** button opens a Google Calendar template for one weekly event. Review
-the date, time, recurrence, and semester end before saving it in Google.
-If the browser blocks the new window, the export dialog explains that pop-ups
-must be allowed before trying again.
+## Storage
 
-## Storage and troubleshooting
+Schedules live in this browser's `localStorage` — clearing site data or
+switching browsers can hide them.
 
-Schedules are stored only in the current browser's `localStorage`. Clearing site
-data, using private browsing, or changing browsers can remove or hide them.
-
-If a subject is missing, Tanrend may not have published it yet, the code may be
-incorrect, or the upstream service may be unavailable. Try a `DEMO-*` code to
-distinguish an application problem from unavailable live data.
+Missing subject? Tanrend may not have published it yet, or the service may be
+down. Try `DEMO-1` — if it works, the problem is the live data, not the app.

@@ -10,13 +10,21 @@
 
 - `src/` is a Svelte 5 single-page application built with Vite.
 - `src/App.svelte` owns the main saved schedule and UI state.
-- `src/components/ScheduleWorkspace.svelte` owns sharing feedback and export
-  dialog coordination; `AppHeader.svelte` and `AppFooter.svelte` own their
-  presentation and styles.
-- `src/routes/Tanrend.svelte` searches Tanrend data and adds selected classes to the saved schedule.
+- `src/components/TimetableActions.svelte` owns sharing feedback and export
+  dialog coordination inside the timetable toolbar; `AppHeader.svelte` and
+  `AppFooter.svelte` own their presentation and styles.
+- `src/components/ScheduleInput.svelte` searches Tanrend inline by subject code
+  or name, imports registered-subject spreadsheets, and adds selected classes
+  to the saved schedule.
 - `src/utils/schedule.js` contains shared parsing, date, event, conflict, and schedule-sharing logic.
-- `server.js` is an Express proxy. It fetches Tanrend data, throttles upstream requests, and caches responses in SQLite.
-- `tests/` uses Vitest and Testing Library. Tests must import production utilities instead of copying their implementations.
+- `server/index.js` is the Express entry point. The modules in `server/` fetch
+  Tanrend data, throttle upstream requests, apply request limits, and cache
+  responses in SQLite.
+- `config/` owns Vite, Vitest, Playwright, and shared runtime configuration;
+  `deploy/` owns local deployment definitions.
+- `tests/` uses Vitest and Testing Library and is grouped by `components/`,
+  `utils/`, `server/`, `integration/`, and `config/`. Tests must import
+  production utilities instead of copying their implementations.
 - The in-app FAQ is embedded in `src/components/FAQ.svelte`; it does not read `README.md`.
 - `docs/decisions.md` records the rationale and consequences for compatibility-sensitive architecture choices.
 
@@ -28,7 +36,6 @@ Use Node.js 24.15 through 24.x and npm 11.17 or newer. Do not add another lockfi
 npm install --global npm@11.17.0
 npm ci
 npm run dev
-npm start
 npm run check
 npm test -- --run
 npm run test:coverage
@@ -37,7 +44,11 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The frontend runs on port 5173 and proxies `/api` to the backend on port 3000. `DEMO-1` through `DEMO-6` can exercise the app without depending on live Tanrend results.
+`npm run dev` starts the frontend and backend together. The frontend runs on
+port 5173 and proxies `/api` to the backend on port 3000. Use
+`npm run dev:frontend` and `npm run dev:api` only when the processes need to be
+run separately. `DEMO-1` through `DEMO-6` can exercise the app without depending
+on live Tanrend results.
 
 ## Working rules
 

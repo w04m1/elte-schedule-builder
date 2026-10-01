@@ -7,6 +7,38 @@ and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.ht
 
 ## [Unreleased]
 
+### Added
+
+- Full-timetable iCalendar and Google Calendar CSV downloads generated locally
+  as one pack instead of separate per-class calendar links.
+- English and Hungarian interface localization with device-language defaults.
+- Universal course, code, and professor search with ranked autocomplete and
+  typo-tolerant human-name matching.
+- Responsive schedule suggestions, direct class-row selection, and compact
+  event details for the weekly timetable.
+- Contributor templates, repository guidance, and regression coverage grouped
+  by application boundary.
+
+### Changed
+
+- Reworked the planner into a responsive two-pane workspace and full-width
+  timetable with accessible light and dark semantic color systems.
+- Grouped lectures before practices, sorted classes by weekday and time, and
+  made same-type selection mutually exclusive using stable class identities.
+- Organized application, server, configuration, deployment, test, and
+  documentation files by responsibility.
+- Made local startup include both the frontend and API and kept the backend
+  same-origin instead of exposing permissive cross-origin responses.
+
+### Fixed
+
+- Prevented lecture/practice and duplicate-code instructor variants from
+  appearing falsely selected.
+- Prevented intermediate and mobile layouts from overlapping, shifting search
+  actions, or switching away from the intended calendar presentation.
+- Restored reproducible Docker installs by retaining `package-lock.json` in the
+  build context.
+
 ## [1.0.3] - 2026-08-30
 
 ### Added
