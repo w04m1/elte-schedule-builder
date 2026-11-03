@@ -1,56 +1,87 @@
-<script>
-  import { getEventGroupNumber } from "../utils/schedule";
+<script lang="ts">
+  import { getEventDisplayTitle } from "../utils/schedule.js";
+  import { language, t } from "../utils/i18n.js";
+  import Icon from "./Icon.svelte";
+  import type { CalendarEvent } from "../types/schedule.js";
 
-  let { calendarEvent } = $props();
+  interface Props {
+    calendarEvent: {
+      title?: string;
+      hasConflict?: boolean;
+      originalEvent?: CalendarEvent;
+      [key: string]: unknown;
+    };
+  }
 
-  const event = $derived(calendarEvent.originalEvent ?? {});
-  const groupNumber = $derived(getEventGroupNumber(event));
+  let { calendarEvent }: Props = $props();
+
+  const event = $derived((calendarEvent.originalEvent ?? {}) as CalendarEvent);
+  const title = $derived(
+    getEventDisplayTitle(event) ||
+      calendarEvent.title ||
+      t($language, "classDetails"),
+  );
 </script>
 
-<div class="event-details">
-  <div class="event-title">{event.title ?? calendarEvent.title}</div>
-  <div class="event-group">Group {groupNumber}</div>
-  <div class="event-code">{event.code ?? ""}</div>
-  <div class="event-time">{event.startTime ?? ""} - {event.endTime ?? ""}</div>
-  {#if event.extendedProps?.instructor}
-    <div class="event-instructor">{event.extendedProps.instructor}</div>
+<div class="event-card" class:has-conflict={calendarEvent.hasConflict}>
+  {#if calendarEvent.hasConflict}
+    <span class="conflict-icon" aria-hidden="true">
+      <Icon name="alert-triangle" size={14} />
+    </span>
   {/if}
+  <div class="event-title">{title}</div>
+  <div class="event-time">{event.startTime ?? ""}–{event.endTime ?? ""}</div>
   {#if event.extendedProps?.location}
-    <div class="event-location">{event.extendedProps.location}</div>
+    <div class="event-place">
+      {event.extendedProps.location}
+    </div>
   {/if}
 </div>
 
 <style>
-  .event-details {
-    font-size: 1.2em;
-    padding: 4px;
+  .event-card {
+    position: relative;
+    display: grid;
+    gap: 2px;
+    color: var(--color-event-contrast);
+    padding: 6px 7px;
+    font-size: var(--text-xs);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .event-card.has-conflict {
+    padding-right: 27px;
+  }
+
+  .conflict-icon {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.22);
+    color: inherit;
   }
 
   .event-title {
-    font-weight: bold;
-    font-size: 0.9em;
-    margin-bottom: 2px;
-  }
-
-  .event-code {
-    font-size: 0.9em;
-    opacity: 0.9;
+    font-weight: var(--weight-bold);
+    white-space: normal;
+    word-break: break-word;
   }
 
   .event-time {
-    font-size: 0.8em;
-    opacity: 0.9;
+    font-weight: var(--weight-semibold);
+    opacity: 0.95;
   }
 
-  .event-group {
-    font-size: 0.85em;
-    opacity: 0.9;
-    font-weight: 500;
-  }
-
-  .event-location,
-  .event-instructor {
-    font-size: 0.8em;
-    opacity: 0.8;
+  .event-place {
+    opacity: 0.85;
+    white-space: normal;
+    word-break: break-word;
   }
 </style>

@@ -17,5 +17,17 @@ afterEach(async () => {
 if (typeof window !== "undefined") {
   global.window = window;
   global.document = document;
-  global.localStorage = window.localStorage;
+  // Node >= 25 exposes a global localStorage that vitest's jsdom setup will
+  // not replace, so tests would run against Node's storage instead of the
+  // browser API. Prefer the jsdom window's storage when it is available.
+  global.localStorage =
+    globalThis.jsdom?.window?.localStorage ?? window.localStorage;
+
+  if (!globalThis.ResizeObserver) {
+    globalThis.ResizeObserver = class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    };
+  }
 }

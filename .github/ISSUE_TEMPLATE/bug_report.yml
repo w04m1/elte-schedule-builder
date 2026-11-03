@@ -1,31 +1,31 @@
 name: Bug report
-description: Report reproducible incorrect behavior in the application
+description: Report reproducible incorrect behavior
 title: "[Bug]: "
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a problem. Do not include private vulnerability details here; use the security reporting process instead.
+        Thanks for reporting. Don't include private vulnerability details here — use the security reporting process instead.
   - type: checkboxes
     attributes:
       label: Before submitting
       options:
         - label: I searched existing issues for the same problem.
           required: true
-        - label: I reproduced this with the latest deployed or local version.
+        - label: I reproduced this on the latest deployed or local version.
           required: true
   - type: textarea
     id: description
     attributes:
       label: What happened?
-      description: Describe the incorrect behavior and its impact.
+      description: What went wrong and how it affects you.
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
       label: Reproduction steps
-      description: Include the page, actions, and safe subject codes needed to reproduce it.
+      description: The page, actions, and safe subject codes needed.
       placeholder: |
         1. Open ...
         2. Enter DEMO-1 ...
@@ -44,13 +44,13 @@ body:
     id: demo
     attributes:
       label: DEMO reproduction
-      description: If possible, name the DEMO code that reproduces the issue. Do not post private schedule links.
+      description: A DEMO code that reproduces it, if possible. Don't post private schedule links.
       placeholder: DEMO-1
   - type: textarea
     id: environment
     attributes:
       label: Environment
-      description: Include browser, operating system, deployed/local use, and relevant version or commit.
+      description: Browser, OS, deployed or local, and version or commit if known.
       placeholder: |
         Browser:
         Operating system:
@@ -58,8 +58,3 @@ body:
         Version or commit, if known:
     validations:
       required: true
-  - type: textarea
-    id: evidence
-    attributes:
-      label: Additional evidence
-      description: Add screenshots or sanitized logs. Remove credentials, personal data, and private share links.

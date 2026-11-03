@@ -1,32 +1,30 @@
-# Dependencies
-node_modules
-npm-debug.log
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
 
-# Git
-.git
-.gitignore
+# Local state
+.codex-vault/
+.git/
+.cache/
+.npm/
+.vite/
+data/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.log
 
-# Development
+# Environment and editor files
 .env
-.env.local
-.env.development
-.env.test
-.env.production
-
-# IDE
-.idea
-.vscode
+.env.*
+!.env.example
+.idea/
+.vscode/
 *.swp
 *.swo
-
-# Build
-dist
-
-# Cache
-.cache
-.npm
 .DS_Store
-
-# Database
-*.db
-cache.db 

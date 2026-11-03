@@ -1,37 +1,65 @@
 # Releases and deployment
 
-Production releases are built from version tags. A tag such as `v0.1.0` must
-match the version in `package.json`. The release workflow runs the complete test
-suite, publishes a multi-platform container to GitHub Container Registry
-(GHCR), and creates a GitHub release. Dokploy instance handles deployment outside GitHub
-Actions, so application deployment credentials do not need to be stored in this
-repository.
+## Public fork on Vercel
+
+The `unnobatroo/elte-schedule-builder` fork is live at
+[elte-schedule.jismailov.com](https://elte-schedule.jismailov.com). Vercel
+builds the Vite frontend; `api/subject/[query].js` is the serverless adapter
+for the Express app.
+
+The adapter keeps the shared Tanrend validation, request queue, rate limit,
+demo data, and security headers. Only the cache differs: a bounded in-memory
+TTL cache, since Vercel functions have no durable storage. Entries last while
+an instance is warm and vanish on cold start — a speed issue, not a
+correctness one. Local and container deployments keep SQLite.
+
+Deploy from the repo root:
+
+```bash
+vercel deploy
+vercel deploy --prod
+```
+
+Then check the SPA and API:
+
+```bash
+curl --fail https://elte-schedule.jismailov.com/
+curl --fail https://elte-schedule.jismailov.com/api/subject/DEMO-1
+```
+
+The `/import/*` and `/tanrend` rewrites in `vercel.json` keep SPA deep links
+working without swallowing `/api`. The custom domain
+`elte-schedule.jismailov.com` points at Vercel.
+
+## Upstream container releases
+
+Releases are built from version tags — a tag like `v0.1.0` must match the
+version in `package.json`. The release workflow runs the full test suite,
+publishes a multi-platform image to GHCR, and creates a GitHub release.
+Dokploy deploys outside GitHub Actions, so no deployment credentials live in
+this repo.
 
 ## Automatic deployment triggers
 
-Dokploy maintains two independently triggered environments:
+Dokploy runs two environments:
 
 - **Development — [schedule-dev.w04m1.dev](https://schedule-dev.w04m1.dev):**
-  Dokploy watches the `dev` branch and automatically rebuilds and deploys this
-  instance after every push to `dev`.
-- **Production — [schedule.w04m1.dev](https://schedule.w04m1.dev):** Pushing to
-  `main` does not deploy production by itself. A version tag starts the release
-  workflow; after that workflow successfully publishes the new Docker image and
-  GitHub release, Dokploy detects the new production image and deploys it
-  automatically.
+  rebuilds and deploys on every push to `dev`.
+- **Production — [schedule.w04m1.dev](https://schedule.w04m1.dev):** pushing to
+  `main` alone doesn't deploy. A version tag runs the release workflow; once
+  the new image and GitHub release are published, Dokploy deploys it.
 
-No manual deployment step is required during the normal development or release
-flow. The manual image selection described below is for initial configuration,
-recovery, and rollback.
+No manual step is needed in the normal flow. Manual image selection below is
+for first-time setup, recovery, and rollbacks.
 
 Each release publishes two image tags:
 
-- `ghcr.io/w04m1/elte-schedule-builder:0.1.0` for the release version.
-- `ghcr.io/w04m1/elte-schedule-builder:sha-<full-commit-sha>` for the exact
-  source commit.
+- `ghcr.io/w04m1/elte-schedule-builder:0.1.0` — the release version.
+- `ghcr.io/w04m1/elte-schedule-builder:sha-<full-commit-sha>` — the exact
+  commit.
 
-The GitHub release also records the image digest. Use the digest reference for
-strictly immutable deployments:
+The GitHub release also records the image digest. Use it for a strictly
+immutable deployment:
 
 ```text
 ghcr.io/w04m1/elte-schedule-builder@sha256:<image-digest>
@@ -39,46 +67,41 @@ ghcr.io/w04m1/elte-schedule-builder@sha256:<image-digest>
 
 ## Create a release
 
-After the version and changelog changes have passed CI on `main`, create and
-push the matching tag:
+Once version and changelog changes pass CI on `main`:
 
 ```bash
 git tag v0.1.0
 git push origin v0.1.0
 ```
 
-Do not move or reuse an existing release tag. Prepare a new semantic version
-instead.
+Never move or reuse a release tag — cut a new version instead.
 
 ## Configure Dokploy
 
-Configure the production application as an image-based deployment that watches
-for images published by the release workflow, using these values:
+Set up production as an image-based deployment watching for release-workflow
+images:
 
-- Image: the digest reference from the GitHub release. The full commit-SHA tag
-  is a practical fallback if Dokploy requires a tag.
+- Image: the digest from the GitHub release (the commit-SHA tag works as a
+  fallback).
 - Container port: `3000`.
-- Persistent volume: mount persistent storage at `/app/data`.
-- Cache database: leave `CACHE_DB_PATH` unset to use `/app/data/cache.db`, or
-  set it explicitly to that path.
-- Environment: copy only the production values needed from `.env.example`.
-  The published image defaults `NODE_ENV` to `production`, which enables HSTS
-  on every application response. Set `NODE_ENV=production` explicitly when
-  deploying the server without the published container.
-  Set `TRUST_PROXY_HOPS=1` only when exactly one trusted reverse proxy sits in
-  front of the application.
+- Persistent volume: mount at `/app/data`.
+- Cache: leave `CACHE_DB_PATH` unset to use `/app/data/cache.db`, or set it to
+  that path.
+- Environment: copy only what you need from `.env.example`. The published
+  image sets `NODE_ENV=production`, which enables HSTS — set it yourself when
+  running the server without the container. Set `TRUST_PROXY_HOPS=1` only with
+  exactly one trusted reverse proxy in front.
 
-Public GHCR packages need no registry credentials. For a private package,
-configure Dokploy with a GitHub token that has `read:packages` permission.
+Public GHCR packages need no credentials; private ones need a GitHub token
+with `read:packages`.
 
-After deployment, request `/` and `/api/subject/DEMO-1`. Confirm both responses
-include `Strict-Transport-Security: max-age=31536000`, and confirm that the API
-response contains `Introduction to Web Development`. This checks the production
-security mode, server, database, and bundled demo data without relying on
-Tanrend.
+After deploying, request `/` and `/api/subject/DEMO-1`. Both should return
+`Strict-Transport-Security: max-age=31536000`, and the API response should
+contain `Introduction to Web Development`. That checks security mode, server,
+database, and demo data without touching Tanrend.
 
 ## Roll back
 
-Select the digest (or full commit-SHA tag) from the previous successful GitHub
-release and redeploy it in Dokploy. The SQLite cache volume is compatible across
-these releases and should remain mounted during the rollback.
+Redeploy the digest (or commit-SHA tag) from the previous GitHub release in
+Dokploy. Keep the SQLite cache volume mounted — it's compatible across these
+releases.

@@ -9,29 +9,35 @@
     "npm": ">=11.17.0"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "start": "node server.js",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
+    "dev": "node scripts/dev.js",
+    "dev:frontend": "vite --config config/vite.config.js",
+    "dev:api": "node --watch server/index.js",
+    "build": "vite build --config config/vite.config.js",
+    "preview": "npm run build && npm start",
+    "start": "node server/index.js",
+    "test": "vitest --config config/vite.config.js",
+    "test:ui": "vitest --config config/vite.config.js --ui",
+    "test:coverage": "vitest run --config config/vite.config.js --coverage",
+    "test:e2e": "playwright test --config config/playwright.config.js",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "check": "npm run format:check && npm run lint"
+    "check:svelte": "svelte-check",
+    "check": "npm run format:check && npm run lint && npm run check:svelte"
   },
   "overrides": {
     "brace-expansion@^1.0.0": "1.1.18",
-    "brace-expansion@^5.0.0": "5.0.9"
+    "brace-expansion@^5.0.0": "5.0.9",
+    "devalue": "^5.9.2",
+    "qs": "^6.16.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.62.1",
     "@sveltejs/vite-plugin-svelte": "^7.3.0",
     "@testing-library/svelte": "^5.4.2",
+    "@types/node": "^24.10.0",
+    "@types/papaparse": "^5.3.15",
     "@vitest/coverage-v8": "^4.1.11",
     "@vitest/ui": "^4.1.10",
     "eslint": "^10.9.1",
@@ -41,30 +47,32 @@
     "prettier": "^3.9.6",
     "prettier-plugin-svelte": "^4.1.1",
     "svelte": "^5.56.10",
+    "svelte-check": "^4.7.6",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.70.0",
     "vite": "^8.2.2",
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@lucide/svelte": "^1.47.0",
     "@preact/signals": "^2.11.1",
     "@schedule-x/calendar": "^3.7.3",
     "@schedule-x/event-modal": "^4.6.1",
     "@schedule-x/events-service": "^4.6.1",
     "@schedule-x/svelte": "^3.0.0",
     "@schedule-x/theme-default": "^4.6.1",
-    "axios": "^1.7.9",
-    "cors": "^2.8.6",
+    "@sindresorhus/fnv1a": "^3.1.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "fastest-levenshtein": "^1.0.16",
     "helmet": "^8.3.0",
+    "p-queue": "^9.3.3",
+    "papaparse": "^5.7.0",
     "preact": "^10.29.8",
+    "read-excel-file": "^9.3.10",
     "sqlite": "^5.1.1",
     "sqlite3": "^6.0.1",
     "temporal-polyfill": "^0.3.0"
-  },
-  "allowScripts": {
-    "esbuild@0.28.1": true,
-    "fsevents@2.3.2": false,
-    "fsevents@2.3.3": false,
-    "sqlite3@6.0.1": true
   }
 }

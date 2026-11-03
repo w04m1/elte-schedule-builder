@@ -1,5 +1,5 @@
 name: Feature request
-description: Propose an improvement for students or contributors
+description: Suggest an improvement for students or contributors
 title: "[Feature]: "
 body:
   - type: checkboxes
@@ -12,35 +12,35 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: What user or contributor problem should this solve?
+      description: What problem should this solve?
     validations:
       required: true
   - type: textarea
     id: outcome
     attributes:
       label: Desired outcome
-      description: Describe observable behavior rather than only an implementation.
+      description: What you'd want to see happen — not just an implementation.
     validations:
       required: true
   - type: textarea
     id: approach
     attributes:
       label: Possible approach
-      description: Suggest an implementation if you have one, including alternatives considered.
+      description: An implementation idea, if you have one, plus alternatives considered.
   - type: checkboxes
     id: compatibility
     attributes:
       label: Compatibility areas
-      description: Select every area the proposal may affect.
+      description: Tick every area the proposal might affect.
       options:
         - label: Enabled or disabled class selection
         - label: Conflict detection or lecture exemption
         - label: Saved schedules or legacy local storage
         - label: Shared schedule URLs
-        - label: Local calendar dates or Google Calendar export
+        - label: Local calendar dates or calendar export
         - label: Tanrend requests, throttling, or caching
   - type: textarea
     id: context
     attributes:
       label: Additional context
-      description: Add examples, mockups, or related issues without including personal schedule data.
+      description: Examples, mockups, or related issues — no personal schedule data.
