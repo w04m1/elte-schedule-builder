@@ -227,7 +227,7 @@
 
 <section class="timetable" aria-labelledby="timetable-heading">
   <div class="timetable-heading">
-    <div class="heading-copy">
+    <div class="heading-copy sr-only">
       <h2 id="timetable-heading" tabindex="-1">
         {t($language, "yourTimetable")}
       </h2>
@@ -323,12 +323,12 @@
   }
 
   .timetable-heading {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    min-height: 62px;
-    gap: var(--space-3);
-    padding: 10px 14px;
+    justify-content: space-between;
+    gap: 8px 16px;
+    padding: 8px 12px;
     background: var(--color-surface);
   }
 
@@ -347,10 +347,10 @@
 
   .heading-copy {
     min-width: 0;
-    white-space: nowrap;
   }
 
   .display-options {
+    flex: 1 1 260px;
     min-width: 0;
   }
 
@@ -358,12 +358,13 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: var(--space-2);
     min-width: 0;
   }
 
   .timetable-heading :global(.button) {
-    min-height: 34px;
+    min-height: 44px;
     gap: 6px;
     padding: 5px 9px;
     font-size: var(--text-xs);
@@ -372,7 +373,7 @@
   .calendar-wrapper {
     position: relative;
     width: 100%;
-    min-height: 760px;
+    min-height: 580px;
     max-height: 140vh;
     height: auto;
     --sx-color-primary: var(--color-info);
@@ -392,6 +393,16 @@
   }
 
   :global(.sx__calendar) {
+    --sx-color-primary: var(--color-accent);
+    --sx-color-background: var(--color-surface);
+    --sx-color-on-background: var(--color-text);
+    --sx-color-surface: var(--color-surface);
+    --sx-color-on-surface: var(--color-text);
+    --sx-color-surface-container: var(--color-surface-2);
+    --sx-color-surface-container-low: var(--color-surface-subtle);
+    --sx-color-surface-container-high: var(--color-surface-3);
+    --sx-color-outline: var(--color-border-strong);
+    --sx-color-outline-variant: var(--color-border);
     font-family: inherit;
   }
 
@@ -518,15 +529,13 @@
     }
 
     .calendar-wrapper.is-empty {
-      min-height: 520px;
-      max-height: 520px;
-      overflow: hidden;
+      min-height: 300px;
+      max-height: 360px;
+      overflow: auto;
     }
 
     .calendar-wrapper.is-empty :global(.sx__calendar) {
-      min-width: 760px;
-      transform: scale(0.68);
-      transform-origin: top left;
+      min-width: 580px;
     }
 
     .agenda {

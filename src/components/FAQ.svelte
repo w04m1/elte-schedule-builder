@@ -137,8 +137,8 @@
           átnevezheted vagy törölheted az aktuális tervet. Az <strong
             >Új órarend</strong
           >
-          külön tervet készít, az <strong>Órarend kiürítése</strong> pedig csak az
-          aktuális tervből távolítja el a tárgyakat.
+          külön tervet készít. Az utolsó órarend törlése után egy új, üres terv nyílik
+          meg.
         </p>
       </section>
 
@@ -198,8 +198,7 @@
         <h3>Quick start</h3>
         <ol>
           <li>
-            Type a subject code, course name, or professor under
-            <strong>Add courses from Tanrend</strong>.
+            Type a subject code, course name, or professor in the search field.
           </li>
           <li>
             Open a suggestion, or hit <strong>Find courses</strong> for every match.
@@ -211,7 +210,7 @@
             compares everything at once.
           </li>
           <li>
-            Export or copy a share link from <strong>Your timetable</strong>.
+            Export or copy a share link using the buttons above the calendar.
           </li>
         </ol>
       </section>
@@ -226,7 +225,7 @@
           yet.
         </p>
         <p>
-          <strong>Import Neptun</strong> takes the <code>.xlsx</code> from
+          <strong>Import from Neptun</strong> takes the <code>.xlsx</code> from
           Neptun's Registered subjects page. It picks one starting group per
           section — review them or run Suggest schedules.
           <code>DEMO-1</code> through <code>DEMO-6</code> work without live data.
@@ -265,8 +264,8 @@
           Switch, rename, or delete plans at the top. <strong
             >New schedule</strong
           >
-          starts a separate plan; <strong>Clear schedule</strong> empties only the
-          current plan.
+          starts a separate plan. <strong>Delete schedule</strong> removes the current
+          plan. Deleting the last plan opens a new, empty schedule.
         </p>
         <p>
           <strong>Copy link</strong> packs your enabled class codes into a URL — anyone

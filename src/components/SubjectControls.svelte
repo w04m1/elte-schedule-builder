@@ -371,7 +371,7 @@
     justify-content: space-between;
     gap: 12px;
     min-height: 54px;
-    padding: 10px 14px;
+    padding: 16px;
   }
 
   .subjects-heading h2 {
@@ -422,21 +422,21 @@
   }
 
   .lecture-stat {
-    color: var(--color-event-lecture) !important;
+    color: var(--color-success) !important;
   }
 
   .practice-stat {
-    color: var(--color-event-practice) !important;
+    color: var(--color-info) !important;
   }
 
   .conflict-stat {
-    color: var(--color-event-conflict) !important;
+    color: var(--color-danger) !important;
   }
 
   .subject-scroll {
     min-height: 0;
-    max-height: 590px;
-    overflow: auto;
+    max-height: none;
+    overflow: visible;
     padding: 0 10px 10px;
   }
 
@@ -444,8 +444,8 @@
     display: grid;
     place-content: center;
     flex: 1;
-    min-height: 184px;
-    padding: 28px;
+    min-height: 104px;
+    padding: 16px;
     color: var(--color-text-muted);
     text-align: center;
   }
@@ -551,7 +551,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 34px;
+    min-height: 44px;
     border: 0;
     border-radius: var(--radius-sm);
     background: transparent;
@@ -560,8 +560,8 @@
   }
 
   .delete-btn {
-    width: 36px;
-    min-height: 36px;
+    width: 44px;
+    min-height: 44px;
     padding: 0;
     color: var(--color-danger);
   }
@@ -585,8 +585,9 @@
   .event-options {
     display: grid;
     gap: var(--space-4);
-    width: 100%;
-    margin: 0 4px 4px;
+    min-width: 0;
+    width: auto;
+    margin: 0;
     padding: var(--space-3);
     border: 0;
     border-radius: var(--radius-md);
@@ -675,17 +676,18 @@
     border-top: 1px solid var(--color-border);
   }
 
-  @media (max-width: 520px) {
+  @container (max-width: 520px) {
     .group-meeting {
       grid-template-columns: minmax(0, 1fr);
     }
   }
 
-  @media (max-width: 640px) {
+  @container (max-width: 640px) {
     .subjects-heading {
       align-items: flex-start;
       flex-direction: column;
-      padding: 12px;
+      padding: 16px;
+      gap: 8px;
     }
 
     .selection-stats {

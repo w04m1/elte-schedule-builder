@@ -27,7 +27,7 @@ describe("ScheduleManager", () => {
     expect(onSwitch).toHaveBeenCalledWith("two");
   });
 
-  it("renames schedules and prevents deleting the only schedule", async () => {
+  it("renames schedules and allows deleting the only schedule", async () => {
     const onRename = vi.fn();
     const onDelete = vi.fn();
     render(ScheduleManager, {
@@ -48,25 +48,25 @@ describe("ScheduleManager", () => {
     );
 
     expect(onRename).toHaveBeenCalledWith("one", "Semester plan");
+    await fireEvent.click(screen.getByLabelText("Schedule actions"));
     expect(
-      screen.getByRole("button", { name: "Delete Default schedule" }).disabled,
-    ).toBe(true);
+      screen.getByRole("button", { name: "Delete schedule" }).disabled,
+    ).toBe(false);
     expect(onDelete).not.toHaveBeenCalled();
   });
 
-  it("keeps the current schedule clear action with the schedule controls", async () => {
-    const onReset = vi.fn();
+  it("offers only deletion in the actions menu", async () => {
+    const onDelete = vi.fn();
     render(ScheduleManager, {
       schedules: [{ id: "one", name: "Default schedule" }],
       activeScheduleId: "one",
-      hasSubjects: true,
-      onReset,
+      onDelete,
     });
-
+    await fireEvent.click(screen.getByLabelText("Schedule actions"));
+    expect(screen.queryByText("Remove all subjects")).toBeNull();
     await fireEvent.click(
-      screen.getByRole("button", { name: "Clear schedule" }),
+      screen.getByRole("button", { name: "Delete schedule" }),
     );
-
-    expect(onReset).toHaveBeenCalledOnce();
+    expect(onDelete).toHaveBeenCalledWith("one");
   });
 });

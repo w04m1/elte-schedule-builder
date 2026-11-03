@@ -473,7 +473,7 @@ test("builds the schedule from an uploaded registered subjects file", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Import Neptun" }).click();
+  await page.getByRole("button", { name: "Import from Neptun" }).click();
   await page.setInputFiles(
     'input[type="file"]',
     path.join(fixturesDirectory, "registered-subjects.xlsx"),

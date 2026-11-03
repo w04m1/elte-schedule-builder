@@ -224,7 +224,6 @@ export function removeSchedule<T extends ScheduleStore>(
   store: T,
   scheduleId: string,
 ): T {
-  if (store.schedules.length === 1) return store;
   const removedIndex = store.schedules.findIndex(
     (schedule) => schedule.id === scheduleId,
   );
@@ -233,6 +232,12 @@ export function removeSchedule<T extends ScheduleStore>(
   const schedules = store.schedules.filter(
     (schedule) => schedule.id !== scheduleId,
   );
+  if (schedules.length === 0) {
+    return addSchedule(
+      { ...store, schedules: [] },
+      { name: DEFAULT_SCHEDULE_NAME },
+    );
+  }
   const activeScheduleId =
     store.activeScheduleId === scheduleId
       ? schedules[Math.min(removedIndex, schedules.length - 1)].id

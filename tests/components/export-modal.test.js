@@ -36,6 +36,19 @@ describe("ExportModal", () => {
     vi.useRealTimers();
   });
 
+  it("clears old download feedback when reopened", async () => {
+    const { rerender } = render(ExportModal, {
+      props: { isOpen: true, events: [event] },
+    });
+    await fireEvent.click(
+      screen.getByRole("button", { name: /Download iCalendar pack/ }),
+    );
+    expect(screen.getByRole("status")).toBeTruthy();
+    await rerender({ isOpen: false, events: [event] });
+    await rerender({ isOpen: true, events: [event] });
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("downloads the complete timetable as one recurring iCalendar pack", async () => {
     render(ExportModal, {
       props: {

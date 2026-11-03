@@ -68,7 +68,11 @@
 
     const first = focusableElements[0];
     const last = focusableElements[focusableElements.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    if (
+      event.shiftKey &&
+      (document.activeElement === first ||
+        document.activeElement === dialogElement)
+    ) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {
@@ -101,7 +105,7 @@
     position: fixed;
     inset: 0;
     background: var(--color-overlay);
-    backdrop-filter: blur(4px);
+
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -112,15 +116,16 @@
 
   .modal {
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
+    border: 0;
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-3);
-    max-height: calc(100vh - var(--space-4) * 2);
+    box-shadow: var(--shadow-2);
+    max-height: calc(100dvh - var(--space-4) * 2);
     width: 100%;
     max-width: 480px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    padding: var(--space-5);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     animation: scaleIn 0.15s ease-out;
     outline: none;
   }
@@ -156,13 +161,12 @@
   @media (max-width: 640px) {
     .modal-backdrop {
       padding: var(--space-2);
-      align-items: flex-end;
+      align-items: center;
     }
 
     .modal {
-      max-height: 90vh;
-      border-bottom-left-radius: 0;
-      border-bottom-right-radius: 0;
+      max-height: calc(100dvh - 16px);
+      padding: var(--space-4);
     }
   }
 </style>

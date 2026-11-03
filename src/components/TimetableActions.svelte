@@ -78,7 +78,7 @@
 >
   <button
     type="button"
-    class="button button-small button-outline-info action-button export"
+    class="button button-small button-secondary action-button export"
     onclick={() => (showExportModal = true)}
     disabled={events.length === 0}
   >
@@ -87,7 +87,7 @@
   </button>
   <button
     type="button"
-    class="button button-small button-transfer action-button share"
+    class="button button-small button-secondary action-button share"
     onclick={shareSchedule}
     disabled={events.length === 0}
   >
@@ -125,7 +125,11 @@
     bottom: 20px;
     left: 50%;
     z-index: 1000;
-    padding: 12px 24px;
+    padding: 12px 20px;
+    width: max-content;
+    max-width: calc(100vw - 32px);
+    text-align: center;
+    overflow-wrap: anywhere;
     transform: translateX(-50%);
     border-radius: var(--radius-sm);
     background: var(--color-primary);
@@ -135,6 +139,7 @@
   }
 
   .share-status.failed {
+    animation: none;
     background: var(--color-danger-solid);
     color: var(--color-danger-contrast);
   }

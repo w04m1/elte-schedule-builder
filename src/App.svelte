@@ -213,7 +213,7 @@
 
   function deleteSchedule(scheduleId: string) {
     const schedule = schedules.find((item) => item.id === scheduleId);
-    if (!schedule || schedules.length === 1 || !scheduleStore) return;
+    if (!schedule || !scheduleStore) return;
     requestConfirm({
       title: t($language, "deleteSchedule"),
       message: t($language, "deleteScheduleMessage", { name: schedule.name }),
@@ -248,18 +248,6 @@
     saveAndUpdate();
   }
 
-  function resetAll() {
-    requestConfirm({
-      title: t($language, "resetSchedule"),
-      message: t($language, "clearScheduleMessage"),
-      confirmLabel: t($language, "clear"),
-      action: () => {
-        allSubjects = [];
-        saveAndUpdate();
-      },
-    });
-  }
-
   function computeConflicts() {
     allSubjects = markConflicts(allSubjects, lectureExemption);
     updateEvents();
@@ -291,65 +279,65 @@
   <div class="container">
     <AppHeader {faqRead} onOpenFAQ={openFAQ} />
     <AppNotices {showWarning} onCloseWarning={closeWarning} />
-    <div class="planner-toolbar">
-      <ScheduleManager
-        {schedules}
-        {activeScheduleId}
-        onCreate={createSchedule}
-        onSwitch={switchSchedule}
-        onRename={handleRenameSchedule}
-        onDelete={deleteSchedule}
-        hasSubjects={allSubjects.length > 0}
-        onReset={resetAll}
-      />
-    </div>
-    <section
-      class="builder-workspace"
-      aria-label={t($language, "schedulePlanner")}
-    >
-      <div class="builder-pane search-pane">
-        {#key activeScheduleId}
-          <ScheduleInput
-            {importedCodes}
-            savedSubjects={allSubjects}
-            selectedEvents={events}
+    <div class="planner-layout">
+      <section
+        class="builder-workspace"
+        aria-label={t($language, "schedulePlanner")}
+      >
+        <div class="planner-toolbar">
+          <ScheduleManager
+            {schedules}
+            {activeScheduleId}
+            onCreate={createSchedule}
+            onSwitch={switchSchedule}
+            onRename={handleRenameSchedule}
+            onDelete={deleteSchedule}
+          />
+        </div>
+        <div class="builder-pane search-pane">
+          {#key activeScheduleId}
+            <ScheduleInput
+              {importedCodes}
+              savedSubjects={allSubjects}
+              selectedEvents={events}
+              {lectureExemption}
+              onScheduleUpdate={handleScheduleUpdate}
+              onClassSelection={handleClassSelection}
+              onImportComplete={() =>
+                (importedCodes = {
+                  baseCodes: "",
+                  fullCodes: [],
+                  eventIdentities: [],
+                })}
+            />
+          {/key}
+        </div>
+        <div class="builder-pane selected-pane">
+          <SubjectControls
+            subjects={allSubjects}
             {lectureExemption}
-            onScheduleUpdate={handleScheduleUpdate}
-            onClassSelection={handleClassSelection}
-            onImportComplete={() =>
-              (importedCodes = {
-                baseCodes: "",
-                fullCodes: [],
-                eventIdentities: [],
-              })}
+            onToggleSubject={toggleSubject}
+            onToggleEvent={toggleEvent}
+            onDeleteSubject={deleteSubject}
+          />
+        </div>
+      </section>
+      <section
+        class="calendar-shell"
+        aria-label={t($language, "schedulePlanner")}
+      >
+        {#key $language}
+          <Calendar
+            {events}
+            {activeCodes}
+            subjects={allSubjects}
+            {lectureExemption}
+            onToggleLectureExemption={toggleLectureExemption}
+            onApplySuggestion={applySuggestion}
           />
         {/key}
-      </div>
-      <div class="builder-pane selected-pane">
-        <SubjectControls
-          subjects={allSubjects}
-          {lectureExemption}
-          onToggleSubject={toggleSubject}
-          onToggleEvent={toggleEvent}
-          onDeleteSubject={deleteSubject}
-        />
-      </div>
-    </section>
-    <section
-      class="calendar-shell"
-      aria-label={t($language, "schedulePlanner")}
-    >
-      {#key $language}
-        <Calendar
-          {events}
-          {activeCodes}
-          subjects={allSubjects}
-          {lectureExemption}
-          onToggleLectureExemption={toggleLectureExemption}
-          onApplySuggestion={applySuggestion}
-        />
-      {/key}
-    </section>
+      </section>
+    </div>
     <AppFooter {githubRepositoryUrl} />
   </div>
 </main>
@@ -378,52 +366,77 @@
   }
 
   .planner-toolbar {
-    margin-bottom: 10px;
+    margin-bottom: 0;
+  }
+
+  .planner-layout {
+    display: grid;
+    grid-template-columns: minmax(340px, 390px) minmax(0, 1fr);
+    align-items: start;
+    gap: 20px;
   }
 
   .builder-workspace {
     display: grid;
-    grid-template-columns: minmax(0, 1.03fr) minmax(0, 0.97fr);
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 20px;
+    max-height: calc(100dvh - 32px);
+    overflow: auto;
+    position: sticky;
+    top: 16px;
+    scrollbar-gutter: stable;
+    padding-bottom: 4px;
   }
 
   .builder-pane {
     min-width: 0;
-    min-height: 240px;
-    overflow: visible;
-    border-radius: var(--radius-lg);
+    container-type: inline-size;
     background: var(--color-surface);
-    box-shadow: var(--shadow-1);
+    border-radius: var(--radius-lg);
   }
 
   .selected-pane {
-    overflow: hidden;
+    border-top: 1px solid var(--color-border);
   }
 
   .calendar-shell {
-    position: relative;
+    position: sticky;
+    top: 16px;
+    min-width: 0;
     z-index: 0;
     isolation: isolate;
     overflow: hidden;
     border-radius: var(--radius-lg);
     background: var(--color-surface);
-    box-shadow: var(--shadow-1);
+    border: 1px solid var(--color-border);
   }
 
-  @media (max-width: 1240px) {
-    .builder-workspace {
+  @media (max-width: 1000px) {
+    .planner-layout {
       grid-template-columns: minmax(0, 1fr);
+      gap: 16px;
     }
-
-    .builder-pane {
-      min-height: 0;
+    .builder-workspace {
+      position: static;
+      max-height: none;
+      overflow: visible;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .planner-toolbar {
+      grid-column: 1 / -1;
+      max-width: 390px;
+    }
+    .calendar-shell {
+      position: static;
     }
   }
 
   @media (max-width: 768px) {
+    .builder-workspace {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     main {
-      padding: 8px;
+      padding: 12px;
     }
 
     .builder-workspace,

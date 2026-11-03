@@ -79,11 +79,7 @@ export function setThemePreference(
 export function cycleThemePreference(
   storage: Storage = localStorage,
 ): ThemePreference {
-  const current = get(themePreference);
-  const next =
-    THEME_PREFERENCES[
-      (THEME_PREFERENCES.indexOf(current) + 1) % THEME_PREFERENCES.length
-    ];
+  const next: ResolvedTheme = get(resolvedTheme) === "dark" ? "light" : "dark";
   setThemePreference(next, storage);
   return next;
 }

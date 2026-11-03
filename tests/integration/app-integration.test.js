@@ -276,8 +276,9 @@ describe("App integration", () => {
     await fireEvent.change(screen.getByRole("combobox", { name: "Schedule" }), {
       target: { value: examPlanId },
     });
+    await fireEvent.click(screen.getByLabelText("Schedule actions"));
     await fireEvent.click(
-      screen.getByRole("button", { name: "Delete Exam plan" }),
+      screen.getByRole("button", { name: "Delete schedule" }),
     );
     expect(
       screen.getByRole("alertdialog", { name: "Delete schedule" }),
@@ -298,8 +299,9 @@ describe("App integration", () => {
     saveScheduleStore(localStorage, addSchedule(store, { name: "Exam plan" }));
     render(App);
 
+    await fireEvent.click(screen.getByLabelText("Schedule actions"));
     await fireEvent.click(
-      screen.getByRole("button", { name: "Delete Exam plan" }),
+      screen.getByRole("button", { name: "Delete schedule" }),
     );
     await fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 

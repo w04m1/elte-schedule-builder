@@ -18,7 +18,6 @@ describe("AppHeader language switch", () => {
     });
 
     expect(screen.getByRole("button", { name: "Súgó" })).toBeTruthy();
-    expect(screen.getByText("A féléved átláthatóan megtervezve.")).toBeTruthy();
     expect(localStorage.getItem("language")).toBe("hu");
     expect(document.documentElement.lang).toBe("hu");
   });

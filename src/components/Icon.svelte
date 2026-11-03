@@ -6,6 +6,7 @@
     | "chevron-down"
     | "chevron-up"
     | "clock"
+    | "ellipsis"
     | "download"
     | "mail"
     | "map-pin"
@@ -32,6 +33,7 @@
   import ChevronDown from "@lucide/svelte/icons/chevron-down";
   import ChevronUp from "@lucide/svelte/icons/chevron-up";
   import Clock from "@lucide/svelte/icons/clock";
+  import Ellipsis from "@lucide/svelte/icons/ellipsis";
   import Download from "@lucide/svelte/icons/download";
   import Mail from "@lucide/svelte/icons/mail";
   import MapPin from "@lucide/svelte/icons/map-pin";
@@ -58,6 +60,7 @@
     "chevron-up": ChevronUp,
     clock: Clock,
     download: Download,
+    ellipsis: Ellipsis,
     mail: Mail,
     "map-pin": MapPin,
     monitor: Monitor,

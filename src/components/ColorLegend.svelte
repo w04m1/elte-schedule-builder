@@ -43,7 +43,8 @@
   .calendar-options {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: var(--space-4);
     padding: 0 var(--space-1);
     color: var(--color-text-muted);
@@ -85,6 +86,7 @@
   }
 
   .exemption-item {
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
     gap: 8px;

@@ -58,16 +58,18 @@
   }
 
   h2 {
+    margin: 0;
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 1.15rem;
+    font-size: var(--text-xl);
     font-weight: 700;
   }
 
   p {
+    margin: 0;
     color: var(--color-text-muted);
-    font-size: 0.95rem;
+    font-size: var(--text-base);
     line-height: 1.5;
   }
 

@@ -741,7 +741,7 @@
   class:suggestions-open={showSuggestions}
   aria-labelledby="course-finder-heading"
 >
-  <div class="finder-heading">
+  <div class="finder-heading sr-only">
     <div>
       <h2 id="course-finder-heading">{t($language, "addCourses")}</h2>
     </div>
@@ -847,7 +847,7 @@
     </button>
     <button
       type="button"
-      class="button button-transfer"
+      class="button button-secondary"
       onclick={() => fileInput?.click()}
       disabled={isLoading}
       title={t($language, "uploadNeptun")}
@@ -859,7 +859,7 @@
     {#if savedSubjects.length > 0}
       <button
         type="button"
-        class="button button-transfer refresh-btn"
+        class="button button-secondary refresh-btn"
         onclick={refreshSavedSchedule}
         disabled={isLoading}
       >
@@ -1025,13 +1025,6 @@
     z-index: 50;
   }
 
-  .finder-heading {
-    display: flex;
-    align-items: flex-start;
-    min-height: 54px;
-    padding: 14px 14px 7px;
-  }
-
   h2,
   h3,
   p {
@@ -1052,7 +1045,7 @@
 
   .refresh-btn {
     grid-column: 1 / -1;
-    justify-self: start;
+    justify-self: stretch;
   }
 
   .class-row {
@@ -1077,7 +1070,7 @@
     border-top: 1px solid var(--color-border);
   }
 
-  @media (max-width: 520px) {
+  @container (max-width: 520px) {
     .group-meeting {
       grid-template-columns: minmax(0, 1fr);
     }
@@ -1274,8 +1267,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     border: 0;
     border-radius: var(--radius-sm);
@@ -1405,10 +1398,10 @@
     }
   }
 
-  @media (max-width: 520px) {
+  @container (max-width: 520px) {
     .finder-heading {
       min-height: 48px;
-      padding: 12px 12px 5px;
+      padding: 0;
     }
 
     .search-row {
@@ -1426,7 +1419,7 @@
     }
 
     .button-large,
-    .button-transfer {
+    .button-secondary {
       min-height: 46px;
     }
 
@@ -1440,6 +1433,16 @@
 
     .result-group-actions .button {
       flex: 1;
+    }
+  }
+  @container (max-width: 520px) {
+    .results {
+      max-height: none;
+      overflow: visible;
+    }
+    .suggestions {
+      position: static;
+      margin-top: 8px;
     }
   }
 </style>

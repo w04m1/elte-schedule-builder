@@ -1,6 +1,6 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
-  import { cycleThemePreference, themePreference } from "../utils/theme.js";
+  import { cycleThemePreference, resolvedTheme } from "../utils/theme.js";
   import { language, setLanguage, t } from "../utils/i18n.js";
 
   interface Props {
@@ -10,24 +10,9 @@
 
   let { faqRead = false, onOpenFAQ }: Props = $props();
 
-  const THEME_ICONS: Record<string, string> = {
-    system: "monitor",
-    light: "sun",
-    dark: "moon",
-  };
-
-  const themeIcon = $derived(THEME_ICONS[$themePreference] ?? "monitor");
+  const themeIcon = $derived($resolvedTheme === "dark" ? "moon" : "sun");
   const themeLabel = $derived(
-    t($language, "colorTheme", {
-      theme: t(
-        $language,
-        $themePreference === "light"
-          ? "themeLight"
-          : $themePreference === "dark"
-            ? "themeDark"
-            : "themeSystem",
-      ),
-    }),
+    t($language, $resolvedTheme === "dark" ? "switchToLight" : "switchToDark"),
   );
 </script>
 
@@ -38,7 +23,6 @@
     </div>
     <div>
       <h1>ELTE Schedule Builder</h1>
-      <p>{t($language, "appSubtitle")}</p>
     </div>
   </div>
   <div class="header-buttons">
@@ -65,8 +49,8 @@
     </label>
     <button
       type="button"
-      class="button button-outline-info faq-btn"
-      class:glow={!faqRead}
+      class="button button-secondary faq-btn"
+      data-unread={!faqRead}
       onclick={() => onOpenFAQ?.()}
     >
       <Icon name="book-open" />
@@ -113,12 +97,6 @@
     color: var(--color-text);
   }
 
-  .title p {
-    margin: 0;
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
-  }
-
   .header-buttons {
     display: flex;
     gap: 10px;
@@ -150,7 +128,7 @@
     font: inherit;
     font-size: var(--text-sm);
     font-weight: var(--weight-bold);
-    box-shadow: var(--shadow-button);
+    box-shadow: none;
   }
 
   .language-picker select:hover {
@@ -162,18 +140,12 @@
   }
 
   .faq-btn {
-    background: color-mix(in srgb, var(--color-info) 10%, var(--color-surface));
-    color: var(--color-info);
+    background: var(--color-surface-2);
+    color: var(--color-text);
   }
 
   .faq-btn:hover {
     background: var(--color-surface-2);
-  }
-
-  .faq-btn.glow {
-    box-shadow: 0 0 0 3px var(--color-surface-3);
-    box-shadow: 0 0 0 3px
-      color-mix(in srgb, var(--color-primary) 20%, transparent);
   }
 
   @media (max-width: 768px) {
@@ -202,10 +174,6 @@
       height: 36px;
     }
 
-    .title p {
-      display: none;
-    }
-
     .faq-btn {
       width: var(--control-md);
       min-height: var(--control-md);
@@ -221,7 +189,8 @@
 
   @media (max-width: 420px) {
     .header {
-      gap: 6px;
+      gap: 10px;
+      flex-wrap: wrap;
     }
 
     .title {
@@ -235,19 +204,21 @@
     }
 
     .header-buttons {
-      gap: 4px;
+      width: 100%;
+      justify-content: flex-start;
+      gap: 8px;
     }
 
     .theme-toggle,
     .faq-btn {
-      width: var(--control-sm);
-      height: var(--control-sm);
-      min-height: var(--control-sm);
+      width: 44px;
+      height: 44px;
+      min-height: 44px;
     }
 
     .language-picker select {
       min-width: 56px;
-      height: var(--control-sm);
+      height: 44px;
       padding-left: 8px;
     }
 

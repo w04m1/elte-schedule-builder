@@ -143,7 +143,7 @@
     line-height: 1.3;
   }
 
-  @media (max-width: 768px) {
+  @container (max-width: 768px) {
     .class-option-status {
       grid-column: 1 / -1;
       justify-items: start;

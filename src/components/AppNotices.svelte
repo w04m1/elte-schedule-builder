@@ -48,12 +48,13 @@
   }
 
   .notice-copy h2 {
+    margin: 0;
     font-size: 1rem;
     font-weight: 700;
   }
 
   .notice-copy p {
-    margin-top: 4px;
+    margin: 4px 0 0;
     color: var(--color-text-muted);
     font-size: 0.92rem;
     line-height: 1.45;

@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  THEME_PREFERENCES,
   cycleThemePreference,
   initTheme,
   resolveTheme,
@@ -182,18 +181,22 @@ describe("theme", () => {
     expect(get(resolvedTheme)).toBe("light");
   });
 
-  it("cycles through all preferences in order", () => {
-    mockMatchMedia(false);
-    const storage = createStorage();
-    initTheme(storage);
-
-    const visited = [];
-    for (let i = 0; i < THEME_PREFERENCES.length; i += 1) {
-      visited.push(cycleThemePreference(storage));
-    }
-    expect(visited).toEqual(["light", "dark", "system"]);
-    expect(cycleThemePreference(storage)).toBe("light");
-  });
+  it.each([false, true])(
+    "toggles away from the resolved system theme (%s), then persists explicit choices",
+    (dark) => {
+      const query = mockMatchMedia(dark);
+      const storage = createStorage();
+      initTheme(storage);
+      expect(cycleThemePreference(storage)).toBe(dark ? "light" : "dark");
+      expect(storage.dump().get(STORAGE_KEYS.theme)).toBe(
+        dark ? "light" : "dark",
+      );
+      expect(cycleThemePreference(storage)).toBe(dark ? "dark" : "light");
+      query.matches = !dark;
+      query.trigger();
+      expect(get(resolvedTheme)).toBe(dark ? "dark" : "light");
+    },
+  );
 });
 
 describe.each([

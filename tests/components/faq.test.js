@@ -30,8 +30,8 @@ describe("FAQ", () => {
       screen.getByText(/Opening a suggestion doesn't add it/),
     ).toBeTruthy();
     expect(
-      screen.getByText("Clear schedule").parentElement.textContent,
-    ).toMatch(/current plan/);
+      screen.getByText("Delete schedule").parentElement.textContent,
+    ).toMatch(/current\s+plan/);
     expect(screen.queryByText(/under Search by/)).toBeNull();
     expect(screen.getByText(/doesn't include analytics/)).toBeTruthy();
     await fireEvent.click(screen.getByRole("button", { name: "Close guide" }));

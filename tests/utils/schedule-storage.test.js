@@ -147,7 +147,19 @@ describe("schedule storage", () => {
 
     expect(store.schedules).toHaveLength(1);
     expect(store.activeScheduleId).toBe(firstId);
-    expect(removeSchedule(store, firstId)).toBe(store);
+    store = updateActiveSchedule(store, {
+      subjects: [{ title: "Old course" }],
+      lectureExemption: true,
+    });
+    const replacement = removeSchedule(store, firstId);
+    expect(replacement.schedules).toHaveLength(1);
+    expect(replacement.activeScheduleId).not.toBe(firstId);
+    expect(getActiveSchedule(replacement)).toMatchObject({
+      subjects: [],
+      lectureExemption: false,
+    });
+    saveScheduleStore(localStorage, replacement);
+    expect(loadScheduleStore(localStorage)).toEqual(replacement);
   });
 
   it("repairs an invalid active id when loading saved schedules", () => {

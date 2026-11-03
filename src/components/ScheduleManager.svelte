@@ -10,8 +10,6 @@
     onSwitch?: (id: string) => void;
     onRename?: (id: string, name: string) => void;
     onDelete?: (id: string) => void;
-    hasSubjects?: boolean;
-    onReset?: () => void;
   }
 
   let {
@@ -21,9 +19,13 @@
     onSwitch,
     onRename,
     onDelete,
-    hasSubjects = false,
-    onReset,
   }: Props = $props();
+
+  let actionsMenu = $state<HTMLDetailsElement | null>(null);
+
+  function closeActions() {
+    if (actionsMenu) actionsMenu.open = false;
+  }
 
   let editingId = $state("");
   let editingName = $state("");
@@ -46,6 +48,19 @@
     cancelRename();
   }
 </script>
+
+<svelte:window
+  onclick={(event) => {
+    if (actionsMenu && !actionsMenu.contains(event.target as Node))
+      closeActions();
+  }}
+  onkeydown={(event) => {
+    if (event.key === "Escape" && actionsMenu?.open) {
+      closeActions();
+      actionsMenu.querySelector("summary")?.focus();
+    }
+  }}
+/>
 
 <section
   class="schedule-manager"
@@ -114,42 +129,37 @@
       >
         <Icon name="pencil" size={16} />
       </button>
-      <button
-        type="button"
-        class="button button-ghost button-icon icon-btn delete"
-        onclick={() => onDelete?.(activeScheduleId)}
-        disabled={schedules.length === 1}
-        aria-label={t($language, "deleteNamed", {
-          name:
-            schedules.find(({ id }) => id === activeScheduleId)?.name ??
-            t($language, "schedule"),
-        })}
-        title={schedules.length === 1
-          ? t($language, "keepOneSchedule")
-          : t($language, "deleteSchedule")}
-      >
-        <Icon name="trash" size={16} />
-      </button>
     {/if}
   </div>
   <div class="schedule-actions">
-    {#if hasSubjects}
-      <button
-        type="button"
-        class="button button-outline-danger clear-btn"
-        onclick={() => onReset?.()}
+    <details class="actions-menu" bind:this={actionsMenu}>
+      <summary
+        class="button button-secondary button-icon"
+        aria-label={t($language, "scheduleActions")}
+        title={t($language, "scheduleActions")}
       >
-        <Icon name="rotate-ccw" size={16} />
-        {t($language, "clearSchedule")}
-      </button>
-    {/if}
+        <Icon name="ellipsis" size={18} />
+      </summary>
+      <div class="actions-panel">
+        <button
+          type="button"
+          onclick={() => {
+            closeActions();
+            onDelete?.(activeScheduleId);
+          }}
+        >
+          {t($language, "deleteSchedule")}
+        </button>
+      </div>
+    </details>
     <button
       type="button"
-      class="button button-primary create-btn"
+      class="button button-secondary button-icon create-btn"
+      title={t($language, "newSchedule")}
       onclick={() => onCreate?.()}
     >
       <Icon name="plus" size={16} />
-      {t($language, "newSchedule")}
+      <span class="sr-only">{t($language, "newSchedule")}</span>
     </button>
   </div>
 </section>
@@ -159,24 +169,29 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    padding: 9px 12px;
+    gap: 4px;
+    padding: 0;
     border-radius: var(--radius-md);
-    background: var(--color-surface);
+    background: transparent;
     color: var(--color-text);
-    box-shadow: var(--shadow-1);
+  }
+
+  .schedule-picker {
+    flex: 1;
+    min-width: 0;
   }
 
   .schedule-picker,
   form {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
   }
 
   select,
   input {
-    min-width: min(260px, 42vw);
+    min-width: 0;
+    width: 100%;
     height: var(--control-md);
     padding: 0 34px 0 10px;
     border: 1px solid var(--color-border-strong);
@@ -190,16 +205,7 @@
   .schedule-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
-  }
-
-  .create-btn,
-  .clear-btn {
-    gap: var(--space-2);
-  }
-
-  .clear-btn {
-    background: var(--color-surface);
+    gap: 4px;
   }
 
   .icon-btn {
@@ -207,35 +213,52 @@
     height: var(--control-md);
   }
 
-  .icon-btn.delete {
-    color: var(--color-danger);
-  }
-
   form input {
     padding-inline: 10px;
   }
 
-  @media (max-width: 640px) {
-    .schedule-manager {
-      align-items: stretch;
-      flex-direction: column;
-    }
-
-    .schedule-picker,
-    .schedule-actions {
-      width: 100%;
-    }
-
-    select,
-    form,
-    form input {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .schedule-actions > button {
-      flex: 1;
-      justify-content: center;
-    }
+  form {
+    min-width: 0;
+    width: 100%;
+  }
+  .actions-menu {
+    position: relative;
+  }
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+  .actions-panel {
+    position: absolute;
+    z-index: 10;
+    right: 0;
+    top: calc(100% + 6px);
+    width: 220px;
+    padding: 4px;
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    background: var(--color-surface);
+  }
+  .actions-panel button {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-danger);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .actions-panel button:hover:not(:disabled) {
+    background: var(--color-surface-2);
+  }
+  .actions-panel button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 </style>

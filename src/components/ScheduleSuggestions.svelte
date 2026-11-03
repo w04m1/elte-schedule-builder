@@ -151,7 +151,7 @@
 <div class="suggest-bar">
   <button
     type="button"
-    class="button button-small button-warning suggest-btn"
+    class="button button-small button-primary suggest-btn"
     onclick={openSuggestions}
   >
     <Icon name="sparkles" />
@@ -341,8 +341,8 @@
 
   .suggestions-header h2 {
     margin: 0;
-    font-size: var(--text-xl);
-    color: var(--color-warning);
+    font-size: var(--text-2xl);
+    color: var(--color-text);
     display: flex;
     align-items: center;
     gap: 8px;
@@ -366,7 +366,7 @@
 
   .options {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 14px;
     list-style: none;
@@ -379,10 +379,9 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    background: var(--color-surface-2);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-sm);
-    padding: 12px;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    padding: 20px 0;
   }
 
   .option-header {
@@ -413,8 +412,8 @@
   }
 
   .badge.conflict-free {
-    background: var(--color-primary);
-    color: var(--color-primary-contrast);
+    background: var(--color-surface-2);
+    color: var(--color-success);
   }
 
   .option-changes {

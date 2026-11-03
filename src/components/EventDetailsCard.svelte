@@ -4,7 +4,7 @@
     getEventGroupNumber,
     isLectureType,
   } from "../utils/schedule.js";
-  import { language, t } from "../utils/i18n.js";
+  import { dayName, language, t } from "../utils/i18n.js";
   import Icon from "./Icon.svelte";
   import type { CalendarEvent } from "../types/schedule.js";
 
@@ -43,8 +43,24 @@
 >
   <header>
     <h3>{title}</h3>
+    <p class="event-kind">
+      <span>{typeLabel}</span>
+      {#if hasConflict}
+        <span class="conflict-label"
+          ><Icon name="alert-triangle" size={14} />{t(
+            $language,
+            "conflict",
+          )}</span
+        >
+      {/if}
+    </p>
   </header>
 
+  {#if event.dayOfWeek && event.startTime && event.endTime}
+    <p class="meeting-time">
+      {dayName($language, event.dayOfWeek)} � {event.startTime}�{event.endTime}
+    </p>
+  {/if}
   <dl>
     {#if event.extendedProps?.instructor}
       <div>
@@ -76,26 +92,28 @@
 <style>
   .event-details-card {
     padding: 16px 18px;
-    border: 1px solid color-mix(in srgb, white 20%, transparent);
+    min-width: 0;
     border-radius: var(--radius-lg);
-    color: var(--color-event-contrast);
+    background: var(--color-surface);
+    color: var(--color-text);
+    --event-kind-color: var(--color-text-muted);
   }
 
   .is-lecture {
-    background: var(--color-event-lecture);
+    --event-kind-color: var(--color-success);
   }
 
   .is-practice {
-    background: var(--color-event-practice);
+    --event-kind-color: var(--color-info);
   }
 
   .has-conflict {
-    background: var(--color-event-conflict);
+    --event-kind-color: var(--color-danger);
   }
 
   header {
     padding-bottom: 12px;
-    border-bottom: 1px solid color-mix(in srgb, white 24%, transparent);
+    border-bottom: 1px solid var(--color-border);
   }
 
   h3 {
@@ -103,6 +121,30 @@
     color: inherit;
     font-size: var(--text-lg);
     line-height: 1.3;
+    overflow-wrap: anywhere;
+  }
+
+  .event-kind {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 8px 0 0;
+    color: var(--event-kind-color);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+  }
+
+  .conflict-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .meeting-time {
+    margin: 12px 0 0;
+    color: var(--color-text);
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
   }
 
   dl {
@@ -121,8 +163,8 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: color-mix(in srgb, white 78%, transparent);
-    font-size: 0.74rem;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
     font-weight: 700;
   }
 
@@ -130,7 +172,7 @@
     min-width: 0;
     margin: 0;
     overflow-wrap: anywhere;
-    font-size: 0.84rem;
+    font-size: var(--text-base);
     font-weight: 600;
   }
 

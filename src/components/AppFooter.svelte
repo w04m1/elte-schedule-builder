@@ -94,7 +94,7 @@
   }
 
   .project-note a {
-    color: var(--color-primary);
+    color: var(--color-accent-strong);
     font-weight: 600;
     text-decoration: none;
   }
@@ -128,7 +128,7 @@
   }
 
   .contact-action:hover {
-    border-color: var(--color-primary);
+    border-color: var(--color-accent-strong);
     background: var(--color-surface);
   }
 

@@ -20,6 +20,13 @@
   let exportStatus = $state("");
   let eventCount = $derived(getCalendarEventCount(events));
 
+  $effect(() => {
+    if (!isOpen) {
+      exportError = "";
+      exportStatus = "";
+    }
+  });
+
   function downloadFile(content: string, filename: string, type: string) {
     const url = URL.createObjectURL(new Blob([content], { type }));
     const anchor = document.createElement("a");
@@ -72,7 +79,6 @@
     </button>
 
     <header>
-      <p class="eyebrow">{t($language, "calendarPack")}</p>
       <h2>{t($language, "exportDialogTitle")}</h2>
       <p class="intro">{t($language, "exportDialogDescription")}</p>
     </header>
@@ -136,15 +142,7 @@
     position: relative;
   }
   header {
-    max-width: 680px;
-  }
-  .eyebrow {
-    margin: 0 0 var(--space-2);
-    color: var(--color-accent);
-    font-size: var(--text-xs);
-    font-weight: var(--weight-bold);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    padding-right: 52px;
   }
   h2 {
     margin: 0;
@@ -158,8 +156,8 @@
   }
   .close-btn {
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: 0;
+    right: 0;
     width: var(--control-sm);
     min-width: var(--control-sm);
     min-height: var(--control-sm);
@@ -182,7 +180,7 @@
   }
   .formats {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-3);
   }
   .format-card {
@@ -191,7 +189,7 @@
     flex-direction: column;
     justify-content: space-between;
     gap: var(--space-5);
-    padding: var(--space-5);
+    padding: var(--space-4);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     background: var(--color-surface-2);
@@ -226,6 +224,8 @@
   }
   .format-card .button {
     align-self: flex-start;
+    white-space: normal;
+    text-align: left;
   }
 
   @media (max-width: 680px) {
