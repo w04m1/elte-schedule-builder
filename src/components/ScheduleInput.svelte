@@ -17,6 +17,7 @@
   } from "../utils/schedule.js";
   import {
     getEventCode,
+    getEventGroupIdentity,
     getEventIdentity,
     getEventSlotIdentity,
     normalizeSubjectTitle,
@@ -26,6 +27,7 @@
   let {
     importedCodes = { baseCodes: "", fullCodes: [], eventIdentities: [] },
     selectedEvents = [],
+    savedSubjects = [],
     lectureExemption = false,
     onScheduleUpdate,
     onClassSelection,
@@ -81,7 +83,33 @@
         label: t($language, definition.label),
         rows: rows.filter(definition.matches).sort(compareClassRows),
       }))
-      .filter((section) => section.rows.length > 0);
+      .filter((section) => section.rows.length > 0)
+      .map((section) => {
+        const options = [];
+        for (const row of section.rows) {
+          const key = getEventGroupIdentity(row);
+          let option = options.find((candidate) => candidate.key === key);
+          if (!option) {
+            option = { key, rows: [] };
+            options.push(option);
+          }
+          if (
+            !option.rows.some(
+              (meeting) => getEventIdentity(meeting) === getEventIdentity(row),
+            )
+          )
+            option.rows.push(row);
+        }
+        return { ...section, options };
+      });
+  }
+
+  function getClassOptionState(option) {
+    const states = option.rows.map(getClassRowState);
+    return {
+      selected: states.some((state) => state.selected),
+      conflicts: [...new Set(states.flatMap((state) => state.conflicts))],
+    };
   }
 
   function keepSearchFocusUntilClick(event) {
@@ -481,6 +509,43 @@
     resultGroups = await loadGroups(query, "all");
   }
 
+  async function refreshSavedSchedule() {
+    closeSuggestions();
+    const savedEvents = savedSubjects.flatMap((subject) => subject.events);
+    const codes = [
+      ...new Set(
+        savedEvents
+          .map(getEventCode)
+          .filter(Boolean)
+          .map(getTanrendSubjectCode),
+      ),
+    ];
+    if (codes.length === 0) return;
+    resultGroups = await loadGroups(codes.join(", "), "code");
+    const refreshedEvents = resultGroups.flatMap((group) =>
+      createCalendarEvents(group.classes),
+    );
+    if (refreshedEvents.length > 0) {
+      const retainedEvents = savedEvents.filter(
+        (event) =>
+          failedSearches.includes(getTanrendSubjectCode(getEventCode(event))) &&
+          refreshedEvents.some(
+            (refreshed) =>
+              normalizeSubjectTitle(refreshed.title) ===
+              normalizeSubjectTitle(event.title),
+          ),
+      );
+      onScheduleUpdate?.(
+        selectInitialScheduleGroups(
+          [...refreshedEvents, ...retainedEvents],
+          savedEvents,
+        ),
+        { preserveIncomingSelection: true },
+      );
+      notice = t($language, "refreshedSchedule");
+    }
+  }
+
   function handleQueryInput(event) {
     query = event.currentTarget.value;
     suggestionsEnabled = true;
@@ -791,6 +856,17 @@
       <Icon name="upload" size={18} />
       {t($language, "importNeptun")}
     </button>
+    {#if savedSubjects.length > 0}
+      <button
+        type="button"
+        class="button button-transfer refresh-btn"
+        onclick={refreshSavedSchedule}
+        disabled={isLoading}
+      >
+        <Icon name="rotate-ccw" size={18} />
+        {t($language, "refreshSchedule")}
+      </button>
+    {/if}
   </form>
 
   <div class="feedback" aria-live="polite">
@@ -874,8 +950,9 @@
                   </div>
                 </div>
                 <div class="class-section-rows">
-                  {#each section.rows as row (row.resultKey)}
-                    {@const rowState = getClassRowState(row)}
+                  {#each section.options as option (option.key)}
+                    {@const row = option.rows[0]}
+                    {@const rowState = getClassOptionState(option)}
                     <label
                       class="class-option class-row"
                       class:is-selected={rowState.selected}
@@ -886,7 +963,7 @@
                         type="radio"
                         name={`${group.id}-${section.id}`}
                         checked={rowState.selected}
-                        aria-label={`${t($language, rowState.selected ? "selectedClass" : "selectClass")}: ${row.title}, ${localizeType(row.type)}, ${localizeWhen(row.when)}, ${row.code}${rowState.conflicts.length > 0 ? `, ${t($language, "conflictsWithCourses", { courses: formatEventConflictLabel($language, rowState.conflicts) })}` : ""}`}
+                        aria-label={`${t($language, rowState.selected ? "selectedClass" : "selectClass")}: ${row.title}, ${localizeType(row.type)}, ${option.rows.map((meeting) => localizeWhen(meeting.when)).join(" · ")}, ${row.code}${row.instructor ? `, ${row.instructor}` : ""}${rowState.conflicts.length > 0 ? `, ${t($language, "conflictsWithCourses", { courses: formatEventConflictLabel($language, rowState.conflicts) })}` : ""}`}
                         onclick={(event) => {
                           if (!rowState.selected) return;
                           event.preventDefault();
@@ -896,16 +973,22 @@
                           if (!rowState.selected) addSelectedClass(group, row);
                         }}
                       />
-                      <ClassOptionContent
-                        selected={rowState.selected}
-                        day={dayName($language, row.dayOfWeek)}
-                        startTime={row.startTime}
-                        endTime={row.endTime}
-                        instructor={row.instructor}
-                        location={row.location}
-                        code={row.code}
-                        conflicts={rowState.conflicts}
-                      />
+                      <span class="group-meetings">
+                        {#each option.rows as meeting (meeting.resultKey)}
+                          <span class="group-meeting">
+                            <ClassOptionContent
+                              selected={rowState.selected}
+                              day={dayName($language, meeting.dayOfWeek)}
+                              startTime={meeting.startTime}
+                              endTime={meeting.endTime}
+                              instructor={meeting.instructor}
+                              location={meeting.location}
+                              code={meeting.code}
+                              conflicts={getClassRowState(meeting).conflicts}
+                            />
+                          </span>
+                        {/each}
+                      </span>
                     </label>
                   {/each}
                 </div>
@@ -965,6 +1048,39 @@
     grid-template-columns: minmax(0, 1fr) auto auto;
     gap: 8px;
     padding: 6px 14px 12px;
+  }
+
+  .refresh-btn {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .class-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .group-meetings {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .group-meeting {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .group-meeting + .group-meeting {
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  @media (max-width: 520px) {
+    .group-meeting {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   .search-box {

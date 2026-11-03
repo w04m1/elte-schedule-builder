@@ -16,6 +16,15 @@
       <strong>{t($language, "notAffiliated")}</strong>
       <p>
         {t($language, "builtBy")}
+        <a
+          href="https://blog.w04m1.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Daniil Sherstennikov<span class="sr-only">
+            ({t($language, "opensNewTab")})</span
+          ></a
+        >
+        &amp;
         <a href="https://jalols.page/" target="_blank" rel="noopener noreferrer"
           >Jaloliddin Ismailov<span class="sr-only">
             ({t($language, "opensNewTab")})</span
@@ -30,13 +39,21 @@
           <GitHubStarLink href={githubRepositoryUrl} />
         </div>
       {/if}
-      <a href="mailto:me@jismailov.com" class="contact-action">
+      <a href="mailto:w04m1@proton.me" class="contact-action">
         <Icon name="mail" size={17} />
         <span>
           <small>{t($language, "email")}</small>
-          me@jismailov.com
+          w04m1@proton.me
         </span>
       </a>
+      <a
+        href="https://s.w04m1.dev/s/tg"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Telegram<span class="sr-only">
+          ({t($language, "opensNewTab")})</span
+        ></a
+      >
     </nav>
   </div>
 </footer>

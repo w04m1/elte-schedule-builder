@@ -21,6 +21,42 @@ describe("schedule storage", () => {
     nextId = 1;
   });
 
+  it("keeps a hidden subject hidden while repairing duplicate selections", () => {
+    const event = {
+      code: "P1",
+      dayOfWeek: "Monday",
+      startTime: "10:00",
+      endTime: "11:00",
+      extendedProps: { type: "practice" },
+      enabled: true,
+    };
+    saveScheduleStore(localStorage, {
+      version: 1,
+      activeScheduleId: "saved",
+      schedules: [
+        {
+          id: "saved",
+          name: "Hidden",
+          lectureExemption: false,
+          subjects: [
+            {
+              title: "Algorithms",
+              enabled: false,
+              events: [event, { ...event }],
+            },
+          ],
+        },
+      ],
+    });
+    const subject = getActiveSchedule(loadScheduleStore(localStorage, makeId))
+      .subjects[0];
+    expect(subject.enabled).toBe(false);
+    expect(subject.events.map((e) => e.enabled)).toEqual([true, false]);
+    expect(
+      getActiveSchedule(loadScheduleStore(localStorage, makeId)).subjects[0],
+    ).toEqual(subject);
+  });
+
   it("creates a default schedule for a first-time visitor", () => {
     const store = loadScheduleStore(localStorage, makeId);
 

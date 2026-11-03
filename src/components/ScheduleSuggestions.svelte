@@ -9,7 +9,10 @@
     Subject,
   } from "../types/schedule.js";
   import { DAY_ORDER, getConflictPairs } from "../utils/schedule.js";
-  import { getEnabledEvents } from "../utils/scheduleState.js";
+  import {
+    getEnabledEvents,
+    getEventInstructor,
+  } from "../utils/scheduleState.js";
   import { findScheduleSuggestions } from "../utils/scheduleOptimizer.js";
   import { dayName, language, t } from "../utils/i18n.js";
 
@@ -91,6 +94,12 @@
           `${dayName($language, event.dayOfWeek)} ${event.startTime}–${event.endTime}`,
       )
       .join(" · ");
+  }
+
+  function formatGroupInstructors(group: OptimizerGroupInfo): string {
+    return [
+      ...new Set(group.events.map(getEventInstructor).filter(Boolean)),
+    ].join(" · ");
   }
 
   function formatType(typeClass: string): string {
@@ -250,6 +259,11 @@
                               <dt>{t($language, "current")}</dt>
                               <dd>
                                 <strong>{change.from.code}</strong>
+                                {#if formatGroupInstructors(change.from)}
+                                  <span
+                                    >{formatGroupInstructors(change.from)}</span
+                                  >
+                                {/if}
                                 <span>{formatGroupTimes(change.from)}</span>
                               </dd>
                             </div>
@@ -257,6 +271,11 @@
                               <dt>{t($language, "suggested")}</dt>
                               <dd>
                                 <strong>{change.to.code}</strong>
+                                {#if formatGroupInstructors(change.to)}
+                                  <span
+                                    >{formatGroupInstructors(change.to)}</span
+                                  >
+                                {/if}
                                 <span>{formatGroupTimes(change.to)}</span>
                               </dd>
                             </div>

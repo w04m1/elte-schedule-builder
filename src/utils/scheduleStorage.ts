@@ -60,7 +60,7 @@ function repairDuplicateSelections(subjects: Subject[]): Subject[] {
     return {
       ...subject,
       events,
-      enabled: events.some((event) => event.enabled),
+      enabled: subject.enabled && events.some((event) => event.enabled),
     };
   });
 }

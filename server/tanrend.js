@@ -3,6 +3,7 @@ import { readPositiveInteger } from "../config/runtime.js";
 export const MAX_SUBJECT_CODE_LENGTH = 64;
 export const MAX_SUBJECT_NAME_LENGTH = 160;
 const SUBJECT_CODE_PATTERN = /^[A-Za-z0-9._-]+$/;
+const MAX_UPSTREAM_RESPONSE_BYTES = 2 * 1024 * 1024;
 const TANREND_SEARCH_MODES = {
   code: "keres_kod_azon",
   name: "keresnevre",
@@ -93,7 +94,33 @@ export async function fetchSubjectData(searchTerm, term, searchMode = "code") {
     throw error;
   }
 
-  return await response.text();
+  if (!response.body) return "";
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let bytesRead = 0;
+  let text = "";
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytesRead += value.byteLength;
+      // Count the actual decoded response bytes, not an optional (or compressed)
+      // Content-Length header, and stop before buffering the rest of the body.
+      if (bytesRead > MAX_UPSTREAM_RESPONSE_BYTES) {
+        await reader.cancel();
+        const error = new Error(
+          `Tanrend response exceeds ${MAX_UPSTREAM_RESPONSE_BYTES} bytes`,
+        );
+        error.status = 502;
+        throw error;
+      }
+      text += decoder.decode(value, { stream: true });
+    }
+    return text + decoder.decode();
+  } finally {
+    reader.releaseLock();
+  }
 }
 
 /**

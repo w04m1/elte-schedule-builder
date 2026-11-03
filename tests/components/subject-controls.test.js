@@ -51,6 +51,49 @@ const subjects = [
 ];
 
 describe("SubjectControls", () => {
+  it("uses one selected radio for all meetings of a group without merging same-time teachers", async () => {
+    const first = {
+      ...subjects[0].events[0],
+      hasConflict: false,
+      extendedProps: {
+        type: "lecture",
+        instructor: "Alice",
+        location: "Room A",
+      },
+    };
+    const second = { ...first, dayOfWeek: "Wednesday" };
+    const alternative = {
+      ...first,
+      enabled: false,
+      extendedProps: { ...first.extendedProps, instructor: "Beatrice" },
+    };
+    const onToggleEvent = vi.fn();
+    render(SubjectControls, {
+      subjects: [
+        {
+          title: "Algorithms",
+          enabled: true,
+          events: [first, second, alternative],
+        },
+      ],
+      onToggleEvent,
+    });
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Edit classes for Algorithms" }),
+    );
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(2);
+    expect(radios.filter((radio) => radio.checked)).toHaveLength(1);
+    const selected = radios.find((radio) => radio.checked);
+    expect(selected.getAttribute("aria-label")).toContain("Alice");
+    expect(selected.closest(".class-option").textContent).toContain("Monday");
+    expect(selected.closest(".class-option").textContent).toContain(
+      "Wednesday",
+    );
+    const other = screen.getByRole("radio", { name: /Beatrice/ });
+    await fireEvent.click(other);
+    expect(onToggleEvent).toHaveBeenCalledWith("Algorithms", 2);
+  });
   it("forwards subject and delete actions", async () => {
     const onToggleSubject = vi.fn();
     const onDeleteSubject = vi.fn();
@@ -83,7 +126,7 @@ describe("SubjectControls", () => {
     );
     const menu = screen.getByRole("group", { name: "Groups for Algorithms" });
     const lecture = screen.getByRole("radio", {
-      name: "Lecture, group 03, Monday 08:00–09:30",
+      name: "Lecture, group 03, Monday 08:00–09:30, Dr. Ada Lovelace",
     });
     await fireEvent.click(lecture);
 
@@ -142,7 +185,7 @@ describe("SubjectControls", () => {
     );
 
     const conflictingOption = screen.getByRole("radio", {
-      name: /Practice, group 01, Monday 10:00–11:30, Conflicts with Databases, Monday 10:30–12:00/,
+      name: /Practice, group 01, Monday 10:00–11:30, Dr. Jane Smith, Conflicts with Databases, Monday 10:30–12:00/,
     });
     expect(conflictingOption.closest(".class-option").classList).toContain(
       "has-conflict",

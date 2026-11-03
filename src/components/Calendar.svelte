@@ -146,7 +146,7 @@
     defaultView: "week",
     dayBoundaries: {
       start: "08:00",
-      end: "21:00",
+      end: "22:00",
     },
     weekOptions: {
       gridHeight: 760,
@@ -421,7 +421,7 @@
   }
 
   /* Schedule-X hides the first boundary label and omits the last one. Keep the
-     08:00–21:00 range while making both requested boundary labels explicit. */
+     08:00–22:00 range while making both boundary labels explicit. */
   :global(.sx__week-grid__hour:first-child) {
     visibility: visible;
   }
@@ -435,7 +435,7 @@
     bottom: 0.2rem;
     left: -43px;
     color: var(--color-text-muted);
-    content: "21:00";
+    content: "22:00";
     font-size: 0.74rem;
     font-variant-numeric: tabular-nums;
   }

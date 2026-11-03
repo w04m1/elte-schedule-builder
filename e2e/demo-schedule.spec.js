@@ -170,7 +170,7 @@ test("adds a DEMO class and keeps it after reload", async ({ page }) => {
         .locator(".sx__week-grid__time-axis")
         .evaluate((element) => getComputedStyle(element, "::after").content),
     )
-    .toBe('"21:00"');
+    .toBe('"22:00"');
 
   await page.reload();
 

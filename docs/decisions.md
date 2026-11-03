@@ -273,7 +273,7 @@ demo health check first.
 
 ## Fixed recurring week
 
-**Decision:** One Monday–Friday grid, 08:00–21:00 labels visible, no date
+**Decision:** One Monday–Friday grid, 08:00–22:00 labels visible, no date
 navigation or day view. Phones get the day-grouped agenda instead.
 
 **Why:** ELTE classes repeat by weekday. Events are projected onto one
@@ -318,3 +318,39 @@ would block later group editing and suggestions.
 **Consequence:** Imports give a readable draft with all alternatives still in
 the editor. Exact duplicates enable once, multi-meeting variants stay
 together, and toggling subject visibility no longer erases class choices.
+
+## Restored PR compatibility and group choices
+
+**Decision:** The owner confirmed two selection sections: lecture and practice.
+A complete subject selects one group for each section available in its source
+data. Non-lecture types remain practice choices; there is no independent third
+laboratory section. A subject-scoped code/type/instructor group is one choice
+containing all of its meetings. Both search results and saved-subject controls
+therefore render one radio per group, with every meeting and its instructor
+visible. Identical time slots do not merge distinct instructors or group codes.
+
+**Compatibility:** Hiding a subject preserves its chosen groups. Showing an old
+saved subject whose child events are all disabled initializes one group per
+available section; it does not enable every alternative. The desktop timetable
+continues through 22:00 so previously saved evening meetings remain visible.
+
+**Search limits:** Suggestions are bounded by node and result limits. Empty
+results state that no alternative or improvement was found; they do not claim
+that no such combination can exist. Applying a suggestion preserves every
+meeting of each chosen group and keeps lecture and practice choices separate.
+
+## Refresh preserves course choices rather than old time slots
+
+**Decision:** Bulk refresh selects by course group identity and passes an explicit
+`preserveIncomingSelection` merge option. Normal imports keep their existing
+merge behavior. Failed base-code rows are retained when another section of the
+same subject refreshes successfully; entirely failed subjects remain unchanged.
+
+**Why:** A moved selected lecture can otherwise inherit an unselected group's
+flag merely because its new time matches that old slot. Partial failure must
+not delete a saved practice or remove the code needed to retry it.
+
+**Consequence:** Successful sections update, hidden subjects stay hidden, and
+failed sections remain available for retry. If a group disappears upstream,
+initial selection may choose a replacement, so the UI asks users to review
+selections instead of promising that every choice is unchanged.

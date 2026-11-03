@@ -11,6 +11,8 @@
   } from "../utils/schedule.js";
   import {
     getEventCode,
+    getEventGroupIdentity,
+    getEventIdentity,
     getEventInstructor,
     normalizeSubjectTitle,
   } from "../utils/scheduleState.js";
@@ -154,7 +156,45 @@
           .filter(({ event }) => !isLectureType(event.extendedProps?.type))
           .sort(compareEvents),
       },
-    ].filter((group) => group.events.length > 0);
+    ]
+      .filter((group) => group.events.length > 0)
+      .map((group) => {
+        // This map is a local accumulator rebuilt on every call, never reactive state.
+        // eslint-disable-next-line svelte/prefer-svelte-reactivity
+        const options = new Map<
+          string,
+          {
+            key: string;
+            eventIndex: number;
+            meetings: CalendarEvent[];
+            selected: boolean;
+          }
+        >();
+        for (const { event, eventIndex } of group.events) {
+          const key = getEventGroupIdentity(event);
+          const option = options.get(key) ?? {
+            key,
+            eventIndex,
+            meetings: [],
+            selected: false,
+          };
+          if (
+            !option.meetings.some(
+              (meeting) =>
+                getEventIdentity(meeting) === getEventIdentity(event),
+            )
+          )
+            option.meetings.push(event);
+          option.selected ||= Boolean(event.enabled);
+          options.set(key, option);
+        }
+        return { ...group, options: [...options.values()] };
+      });
+  }
+
+  function formatGroupLabel(meetings: CalendarEvent[]): string {
+    const instructor = getEventInstructor(meetings[0]);
+    return `${meetings.map(formatEventLabel).join(" · ")}${instructor ? `, ${instructor}` : ""}`;
   }
 </script>
 
@@ -260,36 +300,48 @@
                       {group.label}
                     </h3>
                     <div class="event-group-options">
-                      {#each group.events as { event, eventIndex } (eventIndex)}
-                        {@const conflicts = getEventConflicts(subject, event)}
+                      {#each group.options as option (option.key)}
+                        {@const conflicts = [
+                          ...new Set(
+                            option.meetings.flatMap((event) =>
+                              getEventConflicts(subject, event),
+                            ),
+                          ),
+                        ]}
                         <label
                           class="class-option event-toggle"
-                          class:is-selected={event.enabled}
+                          class:is-selected={option.selected}
                           class:has-conflict={conflicts.length > 0}
                         >
                           <input
                             class="class-option-input"
                             type="radio"
                             name={`subject-${subjectIndex}-${group.key}`}
-                            checked={event.enabled}
-                            aria-label={`${formatEventLabel(event)}${conflicts.length > 0 ? `, ${t($language, "conflictsWithCourses", { courses: formatEventConflictLabel($language, conflicts) })}` : ""}`}
+                            checked={option.selected}
+                            aria-label={`${formatGroupLabel(option.meetings)}${conflicts.length > 0 ? `, ${t($language, "conflictsWithCourses", { courses: formatEventConflictLabel($language, conflicts) })}` : ""}`}
                             onchange={() =>
-                              onToggleEvent?.(subject.title, eventIndex)}
+                              onToggleEvent?.(subject.title, option.eventIndex)}
                           />
-                          <ClassOptionContent
-                            selected={event.enabled}
-                            day={dayName($language, event.dayOfWeek)}
-                            startTime={event.startTime}
-                            endTime={event.endTime}
-                            instructor={getEventInstructor(event)}
-                            location={String(
-                              event.extendedProps?.location ??
-                                event.location ??
-                                "",
-                            )}
-                            code={getEventCode(event)}
-                            {conflicts}
-                          />
+                          <span class="group-meetings">
+                            {#each option.meetings as event (getEventIdentity(event))}
+                              <span class="group-meeting">
+                                <ClassOptionContent
+                                  selected={option.selected}
+                                  day={dayName($language, event.dayOfWeek)}
+                                  startTime={event.startTime}
+                                  endTime={event.endTime}
+                                  instructor={getEventInstructor(event)}
+                                  location={String(
+                                    event.extendedProps?.location ??
+                                      event.location ??
+                                      "",
+                                  )}
+                                  code={getEventCode(event)}
+                                  conflicts={getEventConflicts(subject, event)}
+                                />
+                              </span>
+                            {/each}
+                          </span>
                         </label>
                       {/each}
                     </div>
@@ -599,6 +651,34 @@
   .event-group-options {
     display: grid;
     gap: var(--space-2);
+  }
+
+  .event-toggle {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .group-meetings {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .group-meeting {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1.35fr);
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .group-meeting + .group-meeting {
+    padding-top: 10px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  @media (max-width: 520px) {
+    .group-meeting {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 
   @media (max-width: 640px) {

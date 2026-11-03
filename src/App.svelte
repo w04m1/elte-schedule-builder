@@ -30,6 +30,7 @@
     updateActiveSchedule,
   } from "./utils/scheduleStorage.js";
   import {
+    type ScheduleMergeOptions,
     getEnabledEventCodes,
     getEnabledEvents,
     mergeScheduleEvents,
@@ -75,7 +76,7 @@
   });
   const githubRepositoryUrl =
     import.meta.env.VITE_GITHUB_REPOSITORY_URL?.trim() ||
-    "https://github.com/unnobatroo/elte-schedule-builder";
+    "https://github.com/w04m1/elte-schedule-builder";
 
   onMount(() => {
     const path = window.location.pathname;
@@ -121,8 +122,11 @@
     localStorage.setItem(STORAGE_KEYS.warningShown, "true");
   }
 
-  function handleScheduleUpdate(eventData: CalendarEvent[]) {
-    allSubjects = mergeScheduleEvents(allSubjects, eventData);
+  function handleScheduleUpdate(
+    eventData: CalendarEvent[],
+    options?: ScheduleMergeOptions,
+  ) {
+    allSubjects = mergeScheduleEvents(allSubjects, eventData, options);
     saveAndUpdate();
   }
 
@@ -307,6 +311,7 @@
         {#key activeScheduleId}
           <ScheduleInput
             {importedCodes}
+            savedSubjects={allSubjects}
             selectedEvents={events}
             {lectureExemption}
             onScheduleUpdate={handleScheduleUpdate}

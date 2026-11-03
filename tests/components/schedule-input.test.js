@@ -13,6 +13,8 @@ vi.mock("../../src/utils/registeredSubjectsFile.js", () => ({
 import ScheduleInput from "../../src/components/ScheduleInput.svelte";
 import { fetchSubjectClasses } from "../../src/utils/schedule.js";
 import { readRegisteredSubjectCodes } from "../../src/utils/registeredSubjectsFile.js";
+import { mergeScheduleEvents } from "../../src/utils/scheduleState.js";
+import { createCalendarEvents } from "../../src/utils/schedule.js";
 
 const demoClass = {
   time: "Monday 10:00-11:30",
@@ -38,6 +40,238 @@ describe("ScheduleInput", () => {
   });
 
   afterEach(() => consoleError.mockRestore());
+
+  it.each(["lecture", "practice"])(
+    "retains a failed practice choice alongside refreshed %s and retries its code",
+    async (type) => {
+      const lecture = {
+        ...demoClass,
+        code: "ALG-L-1",
+        title: "Algorithms",
+        type,
+      };
+      const practice = {
+        ...lecture,
+        code: "ALG-P-1",
+        type: "practice",
+        time: "Tuesday 12:00-13:00",
+      };
+      let subjects = [
+        {
+          title: "Algorithms",
+          enabled: true,
+          events: createCalendarEvents([lecture, practice]).map(
+            (event, index) => ({
+              ...event,
+              enabled: index === 1 || type === "lecture",
+            }),
+          ),
+        },
+      ];
+      fetchSubjectClasses.mockImplementation(async (code) => {
+        if (code === "ALG-P") throw new Error("Unavailable");
+        return [{ ...lecture, location: "New lecture room" }];
+      });
+      const view = render(ScheduleInput, {
+        savedSubjects: subjects,
+        onScheduleUpdate: (incoming, options) => {
+          subjects = mergeScheduleEvents(subjects, incoming, options);
+        },
+      });
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Refresh saved schedule" }),
+      );
+      await waitFor(() =>
+        expect(subjects[0].events[0].extendedProps.location).toBe(
+          "New lecture room",
+        ),
+      );
+      expect(subjects[0].events.map((event) => event.code)).toEqual([
+        "ALG-L-1",
+        "ALG-P-1",
+      ]);
+      expect(subjects[0].events.map((event) => event.enabled)).toEqual([
+        type === "lecture",
+        true,
+      ]);
+      await view.rerender({ savedSubjects: subjects });
+      fetchSubjectClasses.mockClear();
+      await fireEvent.click(
+        screen.getByRole("button", { name: "Refresh saved schedule" }),
+      );
+      await waitFor(() =>
+        expect(fetchSubjectClasses).toHaveBeenCalledWith("ALG-P"),
+      );
+    },
+  );
+
+  it("keeps the selected instructor when refresh moves a meeting into an unselected slot", async () => {
+    const alice = { ...demoClass, code: "ALG-1-1", instructor: "Alice" };
+    const bob = {
+      ...alice,
+      code: "ALG-1-2",
+      instructor: "Bob",
+      time: "Tuesday 10:00-11:30",
+    };
+    const saved = [
+      {
+        title: demoClass.title,
+        enabled: true,
+        events: createCalendarEvents([alice, bob]).map((event, index) => ({
+          ...event,
+          enabled: index === 0,
+        })),
+      },
+    ];
+    let result;
+    fetchSubjectClasses.mockResolvedValue([{ ...alice, time: bob.time }, bob]);
+    render(ScheduleInput, {
+      savedSubjects: saved,
+      onScheduleUpdate: (incoming, options) => {
+        result = mergeScheduleEvents(saved, incoming, options);
+      },
+    });
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Refresh saved schedule" }),
+    );
+    await waitFor(() => expect(result).toBeDefined());
+    expect(result[0].enabled).toBe(true);
+    expect(result[0].events.map((event) => event.enabled)).toEqual([
+      true,
+      false,
+    ]);
+    expect(result[0].events[0].dayOfWeek).toBe("Tuesday");
+  });
+
+  it("offers one radio per multi-meeting group while keeping same-time instructors distinct", async () => {
+    const rows = [
+      demoClass,
+      { ...demoClass, time: "Wednesday 10:00-11:30" },
+      { ...demoClass, instructor: "Alternative tutor" },
+    ];
+    const originalRows = structuredClone(rows);
+    const selectedEvents = createCalendarEvents(rows.slice(0, 2)).map(
+      (event) => ({ ...event, enabled: true }),
+    );
+    const originalSelection = structuredClone(selectedEvents);
+    fetchSubjectClasses.mockImplementation(async (_code, mode) =>
+      mode ? [] : rows,
+    );
+    const onClassSelection = vi.fn();
+    render(ScheduleInput, {
+      selectedEvents,
+      onClassSelection,
+    });
+    await fireEvent.input(
+      screen.getByLabelText("Subject code, course name, or professor"),
+      { target: { value: "DEMO-1" } },
+    );
+    await fireEvent.click(screen.getByRole("button", { name: "Find courses" }));
+    await screen.findByRole("heading", { name: demoClass.title });
+    const radios = screen.getAllByRole("radio");
+    expect(radios).toHaveLength(2);
+    const selected = screen.getByRole("radio", { name: /Dr. Jane Smith/ });
+    expect(selected.checked).toBe(true);
+    expect(selected.getAttribute("aria-label")).toContain("Wednesday");
+    expect(selected.closest(".class-row").textContent).toContain("Monday");
+    expect(selected.closest(".class-row").textContent).toContain("Wednesday");
+    await fireEvent.click(
+      screen.getByRole("radio", { name: /Alternative tutor/ }),
+    );
+    expect(onClassSelection).toHaveBeenCalledOnce();
+    expect(onClassSelection.mock.calls[0][0]).toHaveLength(3);
+    expect(onClassSelection.mock.calls[0][1].instructor).toBe(
+      "Alternative tutor",
+    );
+    expect(rows).toEqual(originalRows);
+    expect(selectedEvents).toEqual(originalSelection);
+  });
+
+  it("refreshes saved codes without a query, preserving selected groups and hidden subjects on partial failure", async () => {
+    const rows = [
+      demoClass,
+      { ...demoClass, code: "DEMO-1-2", instructor: "Alternative tutor" },
+    ];
+    const savedSubjects = [
+      {
+        title: demoClass.title,
+        enabled: false,
+        events: createCalendarEvents(rows).map((event, index) => ({
+          ...event,
+          enabled: index === 1,
+        })),
+      },
+      {
+        title: "Unavailable subject",
+        enabled: true,
+        events: createCalendarEvents([
+          subjectClass("OTHER-2-1", "Unavailable subject"),
+        ]),
+      },
+    ];
+    let refreshed;
+    const onScheduleUpdate = (incoming) => {
+      refreshed = mergeScheduleEvents(savedSubjects, incoming);
+    };
+    fetchSubjectClasses.mockImplementation(async (code) => {
+      if (code === "OTHER-2") throw new Error("Unavailable");
+      return rows.map((row) => ({ ...row, location: "Updated room" }));
+    });
+    render(ScheduleInput, { savedSubjects, onScheduleUpdate });
+    expect(
+      screen.getByLabelText("Subject code, course name, or professor").value,
+    ).toBe("");
+    await fireEvent.click(
+      screen.getByRole("button", { name: "Refresh saved schedule" }),
+    );
+    await waitFor(() => expect(refreshed).toBeDefined());
+    expect(fetchSubjectClasses.mock.calls).toEqual([["DEMO-1"], ["OTHER-2"]]);
+    expect(refreshed[0].enabled).toBe(false);
+    expect(refreshed[0].events.map((event) => event.enabled)).toEqual([
+      false,
+      true,
+    ]);
+    expect(
+      refreshed[0].events.every(
+        (event) => event.extendedProps.location === "Updated room",
+      ),
+    ).toBe(true);
+    expect(refreshed[1]).toEqual(savedSubjects[1]);
+    expect(screen.getByText(/OTHER-2/)).toBeTruthy();
+  });
+
+  it("does not issue the next refresh request until the previous one finishes", async () => {
+    let finishFirst;
+    fetchSubjectClasses.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishFirst = resolve;
+        }),
+    );
+    fetchSubjectClasses.mockResolvedValue([subjectClass("OTHER-2-1", "Other")]);
+    const savedSubjects = [
+      {
+        title: demoClass.title,
+        enabled: true,
+        events: createCalendarEvents([demoClass]),
+      },
+      {
+        title: "Other",
+        enabled: true,
+        events: createCalendarEvents([subjectClass("OTHER-2-1", "Other")]),
+      },
+    ];
+    render(ScheduleInput, { savedSubjects });
+    const refresh = screen.getByRole("button", {
+      name: "Refresh saved schedule",
+    });
+    await fireEvent.click(refresh);
+    expect(fetchSubjectClasses).toHaveBeenCalledTimes(1);
+    expect(refresh.disabled).toBe(true);
+    finishFirst([demoClass]);
+    await waitFor(() => expect(fetchSubjectClasses).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(refresh.disabled).toBe(false));
+  });
 
   it("searches Tanrend and adds all returned groups on request", async () => {
     const onScheduleUpdate = vi.fn();

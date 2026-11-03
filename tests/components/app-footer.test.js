@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import AppFooter from "../../src/components/AppFooter.svelte";
 
 describe("AppFooter", () => {
-  it("credits author with accessible external links and contact action", () => {
+  it("keeps upstream contact and credits both authors with accessible links", () => {
     render(AppFooter, {
       githubRepositoryUrl: "https://github.com/w04m1/elte-schedule-builder",
     });
@@ -19,15 +19,24 @@ describe("AppFooter", () => {
 
     expect(jaloliddin.getAttribute("href")).toBe("https://jalols.page/");
     expect(jaloliddin.getAttribute("rel")).toBe("noopener noreferrer");
+    const daniil = screen.getByRole("link", {
+      name: /Daniil Sherstennikov.*opens in a new tab/,
+    });
+    expect(daniil.getAttribute("href")).toBe("https://blog.w04m1.dev");
+    expect(daniil.getAttribute("rel")).toBe("noopener noreferrer");
     expect(
       screen
         .getByRole("link", { name: "Star on GitHub (opens in a new tab)" })
         .getAttribute("href"),
     ).toBe("https://github.com/w04m1/elte-schedule-builder");
     expect(
-      screen.getByRole("link", { name: /me@jismailov\.com/ }),
-    ).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /Telegram/ })).toBeNull();
+      screen
+        .getByRole("link", { name: /w04m1@proton\.me/ })
+        .getAttribute("href"),
+    ).toBe("mailto:w04m1@proton.me");
+    expect(
+      screen.getByRole("link", { name: /Telegram/ }).getAttribute("href"),
+    ).toBe("https://s.w04m1.dev/s/tg");
     expect(screen.getByText("Not affiliated with ELTE.")).toBeTruthy();
     expect(screen.queryByText("ELTE Schedule Builder")).toBeNull();
     expect(

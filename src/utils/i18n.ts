@@ -106,6 +106,8 @@ const MESSAGES = {
     addCourses: "Add courses from Tanrend",
     searchPlaceholder: "Subject code, course, or professor",
     findCourses: "Find courses",
+    refreshSchedule: "Refresh saved schedule",
+    refreshedSchedule: "Saved courses refreshed. Review your group selections.",
     importNeptun: "Import Neptun",
     uploadNeptun: "Upload the .xlsx file from Neptun Registered subjects",
     subjectSuggestions: "Subject suggestions",
@@ -168,9 +170,9 @@ const MESSAGES = {
     suggestSchedules: "Suggest schedules",
     noSuggestionData:
       "Nothing to suggest yet — add subjects with schedule data first.",
-    onlyCombination: "That's the only possible combination for your subjects.",
+    onlyCombination: "No other conflict-free combination was found.",
     noImprovingSchedule:
-      "No available group swap reduces these conflicts. Check the fixed meetings, or turn on Ignore lecture conflicts if lectures are optional.",
+      "No group swap that reduces these conflicts was found. Check the fixed meetings, or turn on Ignore lecture conflicts if lectures are optional.",
     noReplacements: "No replacements",
     replacements: "{count} replacements",
     replacement: "{count} replacement",
@@ -303,6 +305,9 @@ const MESSAGES = {
     addCourses: "Kurzusok hozzáadása a Tanrendből",
     searchPlaceholder: "Tárgykód, kurzus vagy oktató",
     findCourses: "Kurzusok keresése",
+    refreshSchedule: "Mentett órarend frissítése",
+    refreshedSchedule:
+      "A mentett kurzusok frissültek. Ellenőrizd a csoportválasztásokat.",
     importNeptun: "Importálás Neptunból",
     uploadNeptun:
       "A Neptun Felvett tárgyak oldaláról letöltött .xlsx fájl feltöltése",
@@ -367,9 +372,9 @@ const MESSAGES = {
     suggestSchedules: "Órarendjavaslatok",
     noSuggestionData:
       "Még nincs mit javasolni. Előbb adj hozzá időponttal rendelkező tárgyakat.",
-    onlyCombination: "Ez az egyetlen lehetséges kombináció a tárgyaidhoz.",
+    onlyCombination: "Nem találtunk másik ütközésmentes kombinációt.",
     noImprovingSchedule:
-      "Az elérhető csoportcserék egyike sem csökkenti az ütközések számát. Ellenőrizd a kötött időpontokat, vagy kapcsold be az Előadásütközések figyelmen kívül hagyása lehetőséget, ha az előadások látogatása nem kötelező.",
+      "Nem találtunk olyan csoportcserét, amely csökkenti az ütközések számát. Ellenőrizd a kötött időpontokat, vagy kapcsold be az Előadásütközések figyelmen kívül hagyása lehetőséget, ha az előadások látogatása nem kötelező.",
     noReplacements: "Nincs csere",
     replacements: "{count} csere",
     replacement: "{count} csere",

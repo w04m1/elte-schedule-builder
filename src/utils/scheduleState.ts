@@ -46,10 +46,10 @@ function getEventLocation(event: unknown): string {
   return String(e?.extendedProps?.location ?? e?.location ?? "").trim();
 }
 
-function getEventVariantIdentity(event: unknown): string {
+export function getEventGroupIdentity(event: unknown): string {
   return [
     normalizeIdentityValue(getEventCode(event)),
-    normalizeIdentityValue(getEventType(event)),
+    getEventTypeClass(getEventType(event)),
     normalizeIdentityValue(getEventInstructor(event)),
   ].join("\u0000");
 }
@@ -93,7 +93,7 @@ export function selectInitialScheduleGroups(
     const subjectTitle = normalizeSubjectTitle(String(event.title ?? ""));
     const sectionKey = `${subjectTitle}\u0000${getEventTypeClass(getEventType(event))}`;
     const variants = availableVariants.get(sectionKey) ?? new Set<string>();
-    variants.add(getEventVariantIdentity(event));
+    variants.add(getEventGroupIdentity(event));
     availableVariants.set(sectionKey, variants);
   }
 
@@ -103,7 +103,7 @@ export function selectInitialScheduleGroups(
     if (!event?.enabled) continue;
     const subjectTitle = normalizeSubjectTitle(String(event.title ?? ""));
     const sectionKey = `${subjectTitle}\u0000${getEventTypeClass(getEventType(event))}`;
-    const variantIdentity = getEventVariantIdentity(event);
+    const variantIdentity = getEventGroupIdentity(event);
     if (availableVariants.get(sectionKey)?.has(variantIdentity)) {
       selectedVariants.set(sectionKey, variantIdentity);
     }
@@ -112,7 +112,7 @@ export function selectInitialScheduleGroups(
   return events.map((event) => {
     const subjectTitle = normalizeSubjectTitle(String(event.title ?? ""));
     const sectionKey = `${subjectTitle}\u0000${getEventTypeClass(getEventType(event))}`;
-    const variantIdentity = getEventVariantIdentity(event);
+    const variantIdentity = getEventGroupIdentity(event);
     if (!selectedVariants.has(sectionKey)) {
       selectedVariants.set(sectionKey, variantIdentity);
     }
@@ -195,11 +195,25 @@ export function selectScheduleClass(
 ): Subject[] {
   if (eventData.length === 0) return subjects;
 
+  const selectedEvent = eventData.find((event) =>
+    eventMatchesClass(event, selectedClass),
+  );
+  if (!selectedEvent) return subjects;
+  const selectedVariant = getEventGroupIdentity(selectedEvent);
+  const selectedMeetings = new Set<string>();
+  const selectMeeting = (event: CalendarEvent): boolean => {
+    if (getEventGroupIdentity(event) !== selectedVariant) return false;
+    const identity = getEventIdentity(event);
+    if (selectedMeetings.has(identity)) return false;
+    selectedMeetings.add(identity);
+    return true;
+  };
+
   const title = normalizeSubjectTitle(eventData[0].title);
   const incomingEvents = eventData.map((event) => ({
     ...event,
     code: getEventCode(event),
-    enabled: eventMatchesClass(event, selectedClass),
+    enabled: selectMeeting(event),
   }));
   const existingIndex = subjects.findIndex(
     (subject) => subject.title === title,
@@ -218,7 +232,7 @@ export function selectScheduleClass(
   }
 
   const existingSubject = subjects[existingIndex];
-  const mergedEvents = [...existingSubject.events];
+  const mergedEvents = existingSubject.events.map((event) => ({ ...event }));
 
   for (const incomingEvent of incomingEvents) {
     const existingEventIndex = findExistingEventIndex(
@@ -226,15 +240,18 @@ export function selectScheduleClass(
       incomingEvent,
     );
     const previousEvent = mergedEvents[existingEventIndex];
-    const enabled = eventMatchesClass(incomingEvent, selectedClass)
-      ? true
-      : isSameClassType(incomingEvent.extendedProps?.type, selectedClass.type)
-        ? false
-        : (previousEvent?.enabled ?? incomingEvent.enabled);
+    const enabled = previousEvent?.enabled ?? incomingEvent.enabled;
     const nextEvent = { ...incomingEvent, enabled };
 
     if (existingEventIndex === -1) mergedEvents.push(nextEvent);
     else mergedEvents[existingEventIndex] = nextEvent;
+  }
+
+  selectedMeetings.clear();
+  for (const event of mergedEvents) {
+    if (isSameClassType(getEventType(event), getEventType(selectedEvent))) {
+      event.enabled = selectMeeting(event);
+    }
   }
 
   const updatedSubjects = [...subjects];
@@ -247,9 +264,16 @@ export function selectScheduleClass(
   return updatedSubjects;
 }
 
+export interface ScheduleMergeOptions {
+  // Refresh has already selected complete groups by their identity. Do not
+  // replace that selection with flags inherited from an unrelated old slot.
+  preserveIncomingSelection?: boolean;
+}
+
 export function mergeScheduleEvents(
   subjects: Subject[],
   eventData: CalendarEvent[],
+  { preserveIncomingSelection = false }: ScheduleMergeOptions = {},
 ): Subject[] {
   const eventsByTitle = new Map<string, CalendarEvent[]>();
 
@@ -280,6 +304,7 @@ export function mergeScheduleEvents(
 
     const existingSubject = updatedSubjects[existingIndex];
     const updatedEvents = events.map((newEvent) => {
+      if (preserveIncomingSelection) return { ...newEvent };
       const existingEventIndex = findExistingEventIndex(
         existingSubject.events,
         newEvent,
@@ -326,6 +351,10 @@ export function setSubjectEnabled(
     return {
       ...subject,
       enabled: nextEnabled,
+      events:
+        nextEnabled && !subject.events.some((event) => event.enabled)
+          ? selectInitialScheduleGroups(subject.events)
+          : subject.events,
     };
   });
 }
@@ -341,8 +370,15 @@ export function toggleScheduleEvent(
     if (!selectedEvent) return subject;
 
     const nextEnabled = !selectedEvent.enabled;
-    const events = subject.events.map((event, index) => {
-      if (index === eventIndex) return { ...event, enabled: nextEnabled };
+    const selectedVariant = getEventGroupIdentity(selectedEvent);
+    const enabledMeetings = new Set<string>();
+    const events = subject.events.map((event) => {
+      if (getEventGroupIdentity(event) === selectedVariant) {
+        const identity = getEventIdentity(event);
+        const enabled = nextEnabled && !enabledMeetings.has(identity);
+        if (enabled) enabledMeetings.add(identity);
+        return { ...event, enabled };
+      }
       if (
         nextEnabled &&
         isSameClassType(getEventType(event), getEventType(selectedEvent))

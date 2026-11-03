@@ -500,3 +500,367 @@ describe("applyScheduleSuggestion", () => {
     expect(applyScheduleSuggestion(subjects, undefined)).toEqual(subjects);
   });
 });
+
+// Explicit weekly fixtures: alternatives share time, never identity.
+function pickerEvent(code, type, instructor, overrides = {}) {
+  return makeEvent({
+    code,
+    dayOfWeek: type === "lecture" ? "Monday" : "Tuesday",
+    startTime: type === "lecture" ? "10:00" : "12:00",
+    endTime: type === "lecture" ? "11:00" : "13:00",
+    extendedProps: { type, instructor },
+    ...overrides,
+  });
+}
+
+function pickerSubjects({ sameCodes = false, sameInstructor = false } = {}) {
+  return [
+    makeSubject("Algorithms", [
+      pickerEvent("L1", "lecture", "A"),
+      pickerEvent(
+        sameCodes ? "L1" : "L2",
+        "lecture",
+        sameInstructor ? "A" : "B",
+      ),
+      pickerEvent("P1", "practice", "C"),
+      pickerEvent(
+        sameCodes ? "P1" : "P2",
+        "practice",
+        sameInstructor ? "C" : "D",
+      ),
+    ]),
+  ];
+}
+
+function chosenLabels(solution) {
+  return solution.groups
+    .map((group) => `${group.code}/${group.events[0].extendedProps.instructor}`)
+    .sort();
+}
+
+function solutionLabels(solutions) {
+  return solutions.map((solution) => chosenLabels(solution).join("+")).sort();
+}
+
+describe("optimizer acceptance matrix", () => {
+  it("OPT-01 enumerates all four simultaneous lecture/practice alternatives", () => {
+    const subjects = pickerSubjects();
+    const before = structuredClone(subjects);
+    const solutions = findScheduleSuggestions(subjects, { maxSuggestions: 4 });
+    expect(solutionLabels(solutions)).toEqual([
+      "L1/A+P1/C",
+      "L1/A+P2/D",
+      "L2/B+P1/C",
+      "L2/B+P2/D",
+    ]);
+    for (const solution of solutions) {
+      expect(solution.conflicts).toBe(0);
+      expect(solution.changedGroups).toBe(0);
+      expect(solution.groups.map((group) => group.typeClass).sort()).toEqual([
+        "lecture",
+        "practice",
+      ]);
+      const applied = applyScheduleSuggestion(subjects, solution);
+      expect(
+        applied[0].events
+          .filter((event) => event.enabled)
+          .map((event) => `${event.code}/${event.extendedProps.instructor}`)
+          .sort(),
+      ).toEqual(chosenLabels(solution));
+    }
+    expect(subjects).toEqual(before);
+  });
+
+  it("OPT-02 keeps same-code instructors distinct through application", () => {
+    const subjects = pickerSubjects({ sameCodes: true });
+    const solutions = findScheduleSuggestions(subjects, { maxSuggestions: 4 });
+    expect(solutionLabels(solutions)).toEqual([
+      "L1/A+P1/C",
+      "L1/A+P1/D",
+      "L1/B+P1/C",
+      "L1/B+P1/D",
+    ]);
+    for (const solution of solutions) {
+      expect(
+        applyScheduleSuggestion(subjects, solution)[0]
+          .events.filter((event) => event.enabled)
+          .map((event) => `${event.code}/${event.extendedProps.instructor}`)
+          .sort(),
+      ).toEqual(chosenLabels(solution));
+    }
+  });
+
+  it("OPT-03 retains different codes with the same instructor and time", () => {
+    expect(
+      solutionLabels(
+        findScheduleSuggestions(pickerSubjects({ sameInstructor: true })),
+      ),
+    ).toEqual(["L1/A+P1/C", "L1/A+P2/C", "L2/A+P1/C", "L2/A+P2/C"]);
+  });
+
+  it("OPT-04 scopes identical codes and instructors to their subject", () => {
+    const event = pickerEvent("L1", "lecture", "A");
+    const subjects = [
+      makeSubject("First", [event]),
+      makeSubject("Second", [{ ...event }]),
+    ];
+    const [solution] = findScheduleSuggestions(subjects);
+    expect(solution.groups.map((group) => group.subjectTitle)).toEqual([
+      "First",
+      "Second",
+    ]);
+    expect(solution.conflicts).toBe(1);
+    expect(
+      applyScheduleSuggestion(subjects, solution).map(
+        (subject) => subject.events[0].enabled,
+      ),
+    ).toEqual([true, true]);
+  });
+
+  it("OPT-05/06 selects every meeting, removes exact duplicates, and counts the later conflict", () => {
+    const monday = pickerEvent("L1", "lecture", "A");
+    const subjects = [
+      makeSubject("Multi", [
+        monday,
+        { ...monday },
+        { ...monday, dayOfWeek: "Wednesday" },
+        pickerEvent("L2", "lecture", "B", { dayOfWeek: "Tuesday" }),
+        pickerEvent("L2", "lecture", "B", { dayOfWeek: "Thursday" }),
+      ]),
+      makeSubject("Anchor", [
+        pickerEvent("X", "practice", "X", {
+          dayOfWeek: "Wednesday",
+          startTime: "10:00",
+          endTime: "11:00",
+        }),
+      ]),
+    ];
+    const solutions = findScheduleSuggestions(subjects);
+    expect(solutions.map((solution) => solution.conflicts)).toEqual([0, 1]);
+    for (const solution of solutions) {
+      const group = solution.groups.find(
+        (entry) => entry.subjectTitle === "Multi",
+      );
+      expect(group.events).toHaveLength(2);
+      const applied = applyScheduleSuggestion(subjects, solution);
+      expect(
+        applied[0].events
+          .filter((event) => event.enabled)
+          .map((event) => event.dayOfWeek),
+      ).toEqual(
+        group.code === "L1" ? ["Monday", "Wednesday"] : ["Tuesday", "Thursday"],
+      );
+      expect(getConflictPairs(getEnabledEvents(applied)).length).toBe(
+        solution.conflicts,
+      );
+    }
+  });
+
+  it.each([false, true])(
+    "OPT-07/09 keeps one group per type with lecture exemption %s",
+    (lectureExemption) => {
+      const subjects = pickerSubjects();
+      subjects[0].events = subjects[0].events.map((event) => ({
+        ...event,
+        dayOfWeek: "Monday",
+        startTime: "10:00",
+        endTime: "11:00",
+      }));
+      const solutions = findScheduleSuggestions(subjects, { lectureExemption });
+      expect(solutions).toHaveLength(4);
+      for (const solution of solutions) {
+        expect(solution.groups).toHaveLength(2);
+        expect(solution.conflicts).toBe(lectureExemption ? 0 : 1);
+        expect(
+          getEnabledEvents(applyScheduleSuggestion(subjects, solution)),
+        ).toHaveLength(2);
+      }
+    },
+  );
+
+  it("OPT-08 excludes unchosen conflicts and swaps to the conflict-free alternative", () => {
+    const subjects = [
+      makeSubject("Choice", [
+        pickerEvent("L1", "lecture", "A", { enabled: true }),
+        pickerEvent("L2", "lecture", "B", { dayOfWeek: "Wednesday" }),
+      ]),
+      makeSubject("Anchor", [
+        pickerEvent("X", "lecture", "X", { enabled: true }),
+      ]),
+    ];
+    const solutions = findScheduleSuggestions(subjects);
+    expect(
+      solutions.map((solution) => [solution.conflicts, solution.changedGroups]),
+    ).toEqual([
+      [0, 1],
+      [1, 0],
+    ]);
+    expect(
+      solutions[0].groups.find((group) => group.subjectTitle === "Choice").code,
+    ).toBe("L2");
+  });
+
+  it.each([
+    ["adjacent", "Monday", "11:00", "12:00", 0],
+    ["different weekday", "Tuesday", "10:00", "11:00", 0],
+    ["partial overlap", "Monday", "10:30", "11:30", 1],
+  ])(
+    "OPT-10 handles %s in the weekly scheduling model",
+    (_name, dayOfWeek, startTime, endTime, conflicts) => {
+      const subjects = [
+        makeSubject("First", [pickerEvent("L1", "lecture", "A")]),
+        makeSubject("Second", [
+          pickerEvent("P1", "practice", "B", { dayOfWeek, startTime, endTime }),
+        ]),
+      ];
+      expect(findScheduleSuggestions(subjects)[0].conflicts).toBe(conflicts);
+    },
+  );
+
+  it.each(["lecture", "practice"])(
+    "OPT-11 handles a forced %s without inventing another type",
+    (type) => {
+      const hidden = makeSubject(
+        "Hidden",
+        [pickerEvent("H", "lecture", "H", { enabled: true })],
+        { enabled: false },
+      );
+      const subjects = [
+        makeSubject("Only", [pickerEvent("ONE", type, "A")]),
+        hidden,
+      ];
+      const [solution] = findScheduleSuggestions(subjects);
+      expect(solution.groups).toHaveLength(1);
+      expect(solution.groups[0].typeClass).toBe(type);
+      expect(applyScheduleSuggestion(subjects, solution)[1]).toBe(hidden);
+      expect(findScheduleSuggestions([])).toEqual([]);
+    },
+  );
+
+  it("OPT-12 removes multiple active alternatives without mutating the input", () => {
+    const subjects = pickerSubjects();
+    subjects[0].events.forEach((event) => {
+      event.enabled = true;
+    });
+    const before = structuredClone(subjects);
+    for (const solution of findScheduleSuggestions(subjects)) {
+      expect(solution.changedGroups).toBe(2);
+      const applied = applyScheduleSuggestion(subjects, solution);
+      expect(getEnabledEvents(applied)).toHaveLength(2);
+      expect(getConflictPairs(getEnabledEvents(applied)).length).toBe(
+        solution.conflicts,
+      );
+    }
+    expect(subjects).toEqual(before);
+  });
+
+  it("OPT-13 preserves the full solution set after input permutation and repeat calculation", () => {
+    const subjects = pickerSubjects();
+    subjects[0].events[1].enabled = true;
+    subjects[0].events[2].enabled = true;
+    const original = findScheduleSuggestions(subjects);
+    const reversed = findScheduleSuggestions([
+      { ...subjects[0], events: [...subjects[0].events].reverse() },
+    ]);
+    expect(solutionLabels(reversed)).toEqual(solutionLabels(original));
+    expect(findScheduleSuggestions(subjects)).toEqual(original);
+    expect(chosenLabels(original[0])).toEqual(["L2/B", "P1/C"]);
+    expect(chosenLabels(reversed[0])).toEqual(["L2/B", "P1/C"]);
+    expect(original.map((solution) => solution.changedGroups)).toEqual([
+      0, 1, 1, 2,
+    ]);
+  });
+
+  it.each([1, 2, 5])(
+    "OPT-14 respects maxSuggestions=%s and returns valid partial-search choices",
+    (maxSuggestions) => {
+      const subjects = pickerSubjects();
+      expect(
+        findScheduleSuggestions(subjects, { maxSuggestions }),
+      ).toHaveLength(Math.min(maxSuggestions, 4));
+      const partial = findScheduleSuggestions(subjects, {
+        maxSuggestions,
+        maxNodes: 3,
+      });
+      expect(partial).toHaveLength(1);
+      expect(solutionLabels(findScheduleSuggestions(subjects))).toContain(
+        solutionLabels(partial)[0],
+      );
+      expect(
+        getEnabledEvents(applyScheduleSuggestion(subjects, partial[0])),
+      ).toHaveLength(2);
+    },
+  );
+
+  it("OPT-15 documents the current shared non-lecture choice for practice and laboratory", () => {
+    const subjects = [
+      makeSubject("Subject", [
+        pickerEvent("P1", "practice", "A"),
+        pickerEvent("LAB1", "laboratory", "B"),
+      ]),
+    ];
+    const solutions = findScheduleSuggestions(subjects);
+    expect(solutions).toHaveLength(2);
+    expect(solutions.map((solution) => solution.groups.length)).toEqual([1, 1]);
+    expect(solutions.map((solution) => solution.groups[0].typeClass)).toEqual([
+      "practice",
+      "practice",
+    ]);
+  });
+
+  it("matches an independent exhaustive table for all combinations and top-k scores", () => {
+    // Hand-authored conflict table, independent of production overlap/grouping/DFS:
+    // L1 conflicts with P1; P2 conflicts with X; every other pair is disjoint.
+    const subjects = [
+      makeSubject("Choice", [
+        pickerEvent("L1", "lecture", "A", { enabled: true }),
+        pickerEvent("L2", "lecture", "B", { dayOfWeek: "Wednesday" }),
+        pickerEvent("P1", "practice", "C", {
+          dayOfWeek: "Monday",
+          startTime: "10:00",
+          endTime: "11:00",
+          enabled: true,
+        }),
+        pickerEvent("P2", "practice", "D"),
+      ]),
+      makeSubject("Anchor", [
+        pickerEvent("X", "practice", "X", { enabled: true }),
+      ]),
+    ];
+    const conflictTable = { "L1/P1": 1, "L1/P2": 0, "L2/P1": 0, "L2/P2": 0 };
+    const expected = ["L1", "L2"].flatMap((lecture) =>
+      ["P1", "P2"].map((practice) => ({
+        codes: [lecture, practice, "X"].sort().join("+"),
+        conflicts:
+          conflictTable[`${lecture}/${practice}`] + Number(practice === "P2"),
+        changedGroups: Number(lecture !== "L1") + Number(practice !== "P1"),
+      })),
+    );
+    const canonical = (rows) =>
+      [...rows].sort((first, second) =>
+        first.codes.localeCompare(second.codes),
+      );
+    const actual = findScheduleSuggestions(subjects, {
+      maxSuggestions: 10,
+    }).map((solution) => ({
+      codes: solution.groups
+        .map((group) => group.code)
+        .sort()
+        .join("+"),
+      conflicts: solution.conflicts,
+      changedGroups: solution.changedGroups,
+    }));
+    expect(canonical(actual)).toEqual(canonical(expected));
+    const scores = expected
+      .map((row) => [row.conflicts, row.changedGroups])
+      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    for (const maxSuggestions of [1, 2, 3, 4]) {
+      expect(
+        findScheduleSuggestions(subjects, { maxSuggestions }).map((row) => [
+          row.conflicts,
+          row.changedGroups,
+        ]),
+      ).toEqual(scores.slice(0, maxSuggestions));
+    }
+  });
+});

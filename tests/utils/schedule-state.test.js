@@ -25,6 +25,114 @@ function event(overrides = {}) {
 }
 
 describe("schedule state", () => {
+  it("restores one group per section when showing a legacy all-disabled subject", () => {
+    const subjects = [
+      {
+        title: "Algorithms",
+        enabled: false,
+        events: [
+          event({ code: "P1", enabled: false }),
+          event({ code: "P1", dayOfWeek: "Wednesday", enabled: false }),
+          event({ code: "P2", enabled: false }),
+          event({
+            code: "L1",
+            extendedProps: { type: "lecture" },
+            enabled: false,
+          }),
+          event({
+            code: "L2",
+            extendedProps: { type: "lecture" },
+            enabled: false,
+          }),
+        ],
+      },
+    ];
+    const result = setSubjectEnabled(subjects, "Algorithms", true);
+    expect(result[0].events.map((e) => e.enabled)).toEqual([
+      true,
+      true,
+      false,
+      true,
+      false,
+    ]);
+    expect(subjects[0].events.every((e) => !e.enabled)).toBe(true);
+  });
+
+  it("toggles all meetings of the selected group together without enabling duplicates", () => {
+    const first = event({ code: "P1" });
+    const subjects = [
+      {
+        title: "Algorithms",
+        enabled: true,
+        events: [
+          first,
+          event({ code: "P1", dayOfWeek: "Wednesday" }),
+          { ...first, enabled: false },
+          event({ code: "P2", enabled: false }),
+        ],
+      },
+    ];
+    const off = toggleScheduleEvent(subjects, "Algorithms", 0);
+    expect(off[0].events.map((e) => e.enabled)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+    const on = toggleScheduleEvent(off, "Algorithms", 0);
+    expect(on[0].events.map((e) => e.enabled)).toEqual([
+      true,
+      true,
+      false,
+      false,
+    ]);
+  });
+
+  it("disables the previous group even when filtered search does not return it", () => {
+    const previous = event({ code: "P1" });
+    const next = event({
+      code: "P2",
+      description: "P2\nInstructor: Grace",
+      enabled: false,
+    });
+    const lecture = event({ code: "L1", extendedProps: { type: "lecture" } });
+    const subjects = [
+      { title: "Algorithms", enabled: true, events: [previous, lecture] },
+    ];
+    const result = selectScheduleClass(subjects, [next], {
+      code: "P2",
+      dayOfWeek: "Monday",
+      startTime: "10:00",
+      type: "practice",
+      instructor: "Grace",
+    });
+    expect(
+      result[0].events.filter((e) => e.enabled).map((e) => e.code),
+    ).toEqual(["L1", "P2"]);
+    expect(previous.enabled).toBe(true);
+  });
+
+  it("selects every meeting of a searched group but not a same-code different instructor", () => {
+    const first = event({ code: "P1", enabled: false });
+    const second = event({
+      code: "P1",
+      dayOfWeek: "Wednesday",
+      enabled: false,
+    });
+    const alternative = event({
+      code: "P1",
+      description: "P1\nInstructor: Grace",
+      enabled: false,
+    });
+    const result = selectScheduleClass([], [first, second, alternative], {
+      code: "P1",
+      dayOfWeek: "Monday",
+      startTime: "10:00",
+      type: "practice",
+      instructor: "Ada",
+    });
+    expect(result[0].events.map((e) => e.enabled)).toEqual([true, true, false]);
+  });
   it.each([
     ["Algorithms (practice)", "Algorithms"],
     ["Algorithms P.", "Algorithms"],
