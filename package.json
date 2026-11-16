@@ -51,7 +51,7 @@
     "@schedule-x/events-service": "^4.9.1",
     "@schedule-x/svelte": "^3.0.0",
     "@schedule-x/theme-default": "^4.9.1",
-    "axios": "^1.20.0",
+    "axios": "^1.21.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.3.0",
